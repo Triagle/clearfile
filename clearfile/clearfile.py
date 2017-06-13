@@ -29,19 +29,22 @@ class NoteEventHandler(FileSystemEventHandler):
         path = pathlib.PurePath(event.src_path)
         if not event.is_directory and path.suffix in VALID_SUFFIXES:
             self.note_manager.add_note(path.name)
-            print(f'Added note: {path.name}')
+            print(f'+ {path.name}')
 
     def on_moved(self, event):
         path = pathlib.PurePath(event.src_path)
         dest_path = pathlib.PurePath(event.dest_path)
         if path.name in self.note_manager.catalog:
             self.note_manager.rename_note(path.name, dest_path.name)
-            print(f'{path.name} -> {dest_path.name}')
-        elif not event.is_directory and path.suffix in VALID_SUFFIXES:
-            self.note_manager.add_note(path.name)
+        elif not event.is_directory and dest_path.suffix in VALID_SUFFIXES:
+            self.note_manager.add_note(dest_path.name)
+
+        print(f'{path.name} -> {dest_path.name}')
 
     def on_delete(self, event):
-        self.note_manager.remove_missing_notes()
+        path = pathlib.PurePath(event.src_path)
+        print(f'- {path.name}')
+        self.note_manager.remove_note(path.name)
         self.note_manager.save()
 
 @cli.command()
