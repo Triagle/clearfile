@@ -39,6 +39,10 @@ class NoteManager(object):
         self.catalog[new_name] = self.catalog[old_name]
         del self.catalog[old_name]
 
+    def remove_note(self, note_name):
+        if note_name in self.catalog:
+            del self.catalog[note_name]
+
     def search_notes(self, query):
         ''' Search the dictionary of notes for a given search query,
         matching with regex. '''
