@@ -37,7 +37,7 @@ class NoteEventHandler(FileSystemEventHandler):
         if path.name in self.note_manager.catalog:
             self.note_manager.rename_note(path.name, dest_path.name)
             print(f'{path.name} -> {dest_path.name}')
-        elif not event.is_directory or path.suffix in VALID_SUFFIXES:
+        elif not event.is_directory and path.suffix in VALID_SUFFIXES:
             self.note_manager.add_note(path.name)
 
     def on_delete(self, event):
