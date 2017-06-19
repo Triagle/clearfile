@@ -41,7 +41,7 @@ class NoteEventHandler(FileSystemEventHandler):
 
         print(f'{path.name} -> {dest_path.name}')
 
-    def on_delete(self, event):
+    def on_deleted(self, event):
         path = pathlib.PurePath(event.src_path)
         print(f'- {path.name}')
         self.note_manager.remove_note(path.name)
