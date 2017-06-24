@@ -12,7 +12,6 @@ def cli(ctx, clearfile_dir):
     ctx.obj = {}
     note_manager = manager.NoteManager(clearfile_dir)
     ctx.obj['note_manager'] = note_manager
-    note_manager.remove_missing_notes()
     ctx.obj['directory'] = clearfile_dir
 
 
@@ -28,29 +27,28 @@ class NoteEventHandler(FileSystemEventHandler):
     def on_created(self, event):
         path = pathlib.PurePath(event.src_path)
         if not event.is_directory and path.suffix in VALID_SUFFIXES:
-            self.note_manager.add_note(path.name)
+            self.note_manager.add_note(path)
             print(f'+ {path.name}')
 
     def on_moved(self, event):
         path = pathlib.PurePath(event.src_path)
         dest_path = pathlib.PurePath(event.dest_path)
-        if path.name in self.note_manager.catalog:
-            self.note_manager.rename_note(path.name, dest_path.name)
-        elif not event.is_directory and dest_path.suffix in VALID_SUFFIXES:
-            self.note_manager.add_note(dest_path.name)
+        if not event.is_directory and dest_path.suffix in VALID_SUFFIXES:
+            self.note_manager.rename_note(path, dest_path)
 
         print(f'{path.name} -> {dest_path.name}')
 
     def on_deleted(self, event):
         path = pathlib.PurePath(event.src_path)
         print(f'- {path.name}')
-        self.note_manager.remove_note(path.name)
+        self.note_manager.remove_note(path)
         self.note_manager.save()
 
 @cli.command()
 @click.pass_obj
 def watch(ctx):
     note_manager = ctx['note_manager']
+    note_manager.remove_missing_notes()
     directory = ctx['directory']
     note_watch = NoteEventHandler(note_manager)
     observer = Observer()
