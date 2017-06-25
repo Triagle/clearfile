@@ -1,5 +1,5 @@
 ''' Manage notes in a directory. '''
-import note
+from clearfile import note
 import json
 import pathlib
 import re
