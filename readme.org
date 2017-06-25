@@ -1,4 +1,25 @@
 #+TITLE: Clearfile
 
-Clearfile manages your notes in a digital library that can be
-searched, tagged, and grouped.
+Clearfile intends to replace your physical clearfile. It uses[[https://github.com/tesseract-ocr/tesseract][
+tesseract]] optical character recognition to digitally curate your
+clearfile into a searchable digital database.
+
+* Why use a digital clearfile?
+Clearfiles are an excellent way to store physical documents for long
+periods of time without damaging them. Yet they are often difficult to
+manage, leading to the inevitable scenario of dozens of pages stuffed
+into a few clearfile sleeves. Worse still they're unsearchable in any
+capacity, finding that all important hand out on differential
+equations couldn't be more difficult. Clearfile uses the power of
+optical character recognition to give you some semblance of sanity in
+this so often desperately unorganized mess. Hopefully with the
+addition of tagging and notebooks, high order structure can help you
+find what you're looking for faster. Because the images are digital in
+nature, they can be synced without weight, kept away from sun, rain,
+and accidental cleanups, generally last longer than their physical
+counterparts.
+
+Naturally this won't replace forms you need to sign - somethings truly
+are best kept on paper - but the idea is to transition as much as you
+can from the unorganized physical word into the higher order
+abstraction and search-ability of the digital one.
