@@ -37,7 +37,7 @@ class Note(object):
         ''' Initialize note object. '''
         self.name = name
         self.fullpath = pathlib.Path(fullpath)
-        self.tags = tags or []
+        self.tags = set(tags) or set()
         self.old_hash = old_hash or None
         self.ocr_text = ocr_text or ''
 
@@ -160,7 +160,7 @@ class TreeEncoder(json.JSONEncoder):
             return {'__note__': True,
                     'name': obj.name,
                     'fullpath': obj.fullpath,
-                    'tags': obj.tags,
+                    'tags': list(obj.tags),
                     'hash': obj.old_hash,
                     'ocr_text': obj.ocr_text}
         elif isinstance(obj, pathlib.PurePath):

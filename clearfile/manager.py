@@ -42,6 +42,12 @@ class NoteManager(object):
         insert_note.scan()
         self.note_tree.insert(insert_note.path(self.note_dir), insert_note)
 
+    def tag(self, note_path, tags):
+        note_path, note_name = note.node_path_for_filepath(note_path, self.note_dir)
+        selected_node = self.note_tree[note_path]
+        selected_note = selected_node.notes[note_name]
+        selected_note.tags.update(tags)
+
     def remove_missing_notes(self):
         ''' Remove notes in the note tree that no longer exist on the
         file system. '''
