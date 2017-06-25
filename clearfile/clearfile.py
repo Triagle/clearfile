@@ -70,6 +70,7 @@ def watch(ctx):
 @click.pass_obj
 def search(ctx, query):
     note_manager = ctx['note_manager']
-    query_results = note_manager.search_notes(query)
-    for filename in query_results:
-        click.echo(filename)
+    with note_manager:
+        query_results = note_manager.search_notes(query)
+        for note in query_results:
+            click.echo(note.fullpath)

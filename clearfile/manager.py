@@ -261,10 +261,10 @@ class NoteManager(object):
     def search_notes(self, query):
         ''' Search the note tree for a given search query,
         matching the OCR'd text with regex. '''
-        results = {}
+        results = []
         for note in self.note_tree.walk():
             if re.search(query, note.ocr_text, flags=re.IGNORECASE):
-                results[note.name] = note
+                results.append(note)
         return results
 
     def __exit__(self, exc_type, exc_val, exc_tb):
