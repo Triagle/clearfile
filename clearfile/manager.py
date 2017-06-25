@@ -127,7 +127,7 @@ class NoteTree(object):
         at the location described by ``path``. Returns the note that
         was removed, or None if the path given was invalid.  '''
         removal_node = self._node_for_path(path)
-        return removal_node.notes.pop(note, None)
+        return removal_node.notes.pop(note_name, None)
 
     def __getitem__(self, path):
         ''' See ``_node_for_path``. '''
