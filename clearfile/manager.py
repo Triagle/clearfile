@@ -208,6 +208,10 @@ class NoteManager(object):
         ''' Initialize NoteManager. '''
         self.note_dir = pathlib.Path(note_dir)
         self.database_file = pathlib.Path(self.note_dir / database_file)
+        self.note_tree = NoteTree()
+
+    def __enter__(self):
+        ''' Open note_tree file and deserialize note_tree from json found there. '''
         try:
             with open(self.database_file, 'r') as db_file:
                 self.note_tree = json.load(db_file, object_hook=decode_tree)
@@ -227,7 +231,6 @@ class NoteManager(object):
         note = Note(filepath.name, filepath)
         note.scan()
         self.note_tree.insert(note.path(self.note_dir), note)
-        self.save()
 
     def remove_missing_notes(self):
         ''' Remove notes in the note tree that no longer exist on the
@@ -264,8 +267,8 @@ class NoteManager(object):
                 results[note.name] = note
         return results
 
-    def save(self):
-        ''' Serialize the note tree into JSON, at save it to the
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        ''' Serialize the note tree into JSON, and save it to the
         database file. '''
         with open(self.database_file, 'w') as db_file:
             note_tree_json = TreeEncoder().encode(self.note_tree)

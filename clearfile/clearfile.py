@@ -27,28 +27,31 @@ class NoteEventHandler(FileSystemEventHandler):
     def on_created(self, event):
         path = pathlib.PurePath(event.src_path)
         if not event.is_directory and path.suffix in VALID_SUFFIXES:
-            self.note_manager.add_note(path)
+            with self.note_manager:
+                self.note_manager.add_note(path)
             print(f'+ {path.name}')
 
     def on_moved(self, event):
         path = pathlib.PurePath(event.src_path)
         dest_path = pathlib.PurePath(event.dest_path)
         if not event.is_directory and dest_path.suffix in VALID_SUFFIXES:
-            self.note_manager.rename_note(path, dest_path)
+            with self.note_manager:
+                self.note_manager.rename_note(path, dest_path)
 
         print(f'{path.name} -> {dest_path.name}')
 
     def on_deleted(self, event):
         path = pathlib.PurePath(event.src_path)
         print(f'- {path.name}')
-        self.note_manager.remove_note(path)
-        self.note_manager.save()
+        with self.note_manager:
+            self.note_manager.remove_note(path)
 
 @cli.command()
 @click.pass_obj
 def watch(ctx):
     note_manager = ctx['note_manager']
-    note_manager.remove_missing_notes()
+    with note_manager:
+        note_manager.remove_missing_notes()
     directory = ctx['directory']
     note_watch = NoteEventHandler(note_manager)
     observer = Observer()
@@ -60,7 +63,6 @@ def watch(ctx):
     except KeyboardInterrupt:
         observer.stop()
     observer.join()
-    note_manager.save()
 
 
 @cli.command()
