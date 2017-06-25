@@ -9,6 +9,7 @@ from watchdog.events import FileSystemEventHandler
 @click.argument('clearfile_dir', type=click.Path(exists=True))
 @click.pass_context
 def cli(ctx, clearfile_dir):
+    ''' Manage and search physical notes stored in a digital clearfile. '''
     ctx.obj = {}
     note_manager = manager.NoteManager(clearfile_dir)
     ctx.obj['note_manager'] = note_manager
@@ -49,6 +50,7 @@ class NoteEventHandler(FileSystemEventHandler):
 @cli.command()
 @click.pass_obj
 def watch(ctx):
+    ''' Watch a directory for changes. '''
     note_manager = ctx['note_manager']
     with note_manager:
         note_manager.remove_missing_notes()
@@ -68,6 +70,7 @@ def watch(ctx):
 @cli.command()
 @click.pass_obj
 def list(ctx):
+    ''' List notes in the clearfile directory. '''
     note_manager = ctx['note_manager']
     with note_manager:
         for note in note_manager.note_tree.walk():
@@ -78,9 +81,10 @@ def list(ctx):
 
 @cli.command()
 @click.argument('query')
-@click.option('--notebook', default=None)
+@click.option('--notebook', default=None, help='Search for notes inside notebook (directory)')
 @click.pass_obj
 def search(ctx, query, notebook):
+    ''' Search notes for a regular expression. '''
     note_manager = ctx['note_manager']
 
     if notebook is not None:
