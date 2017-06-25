@@ -84,10 +84,6 @@ class Note(object):
         return f"{class_name}('{self.name}', '{description}')"
 
 
-class NodeExistsError(Exception):
-    pass
-
-
 class NoteTree(object):
     ''' Manage a collection of notes and notes within
     directories. Internally this is done by representing the file
