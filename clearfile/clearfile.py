@@ -71,17 +71,22 @@ def list(ctx):
     note_manager = ctx['note_manager']
     with note_manager:
         for note in note_manager.note_tree.walk():
-            keywords = ', '.join(note.keywords)
-            print(f'{note.name} ({keywords}):')
+            tags = ', '.join(note.tags)
+            print(f'{note.name} ({tags}):')
             print(f'"{note.ocr_text}"')
             print('')
 
 @cli.command()
 @click.argument('query')
+@click.option('--notebook', default=None)
 @click.pass_obj
-def search(ctx, query):
+def search(ctx, query, notebook):
     note_manager = ctx['note_manager']
+
+    if notebook is not None:
+        notebook = pathlib.Path(notebook)
+
     with note_manager:
-        query_results = note_manager.search_notes(query)
+        query_results = note_manager.search_notes(query, notebook=notebook)
         for note in query_results:
             click.echo(note.fullpath)

@@ -31,13 +31,13 @@ def ellipize(string, limit):
 
 class Note(object):
     ''' Represents a single note (image). Holds information like ocr
-    recovered text, the fullpath, keywords, etc. '''
+    recovered text, the fullpath, tags, etc. '''
 
-    def __init__(self, name, fullpath, keywords=None, ocr_text=None, old_hash=None):
+    def __init__(self, name, fullpath, tags=None, ocr_text=None, old_hash=None):
         ''' Initialize note object. '''
         self.name = name
         self.fullpath = pathlib.Path(fullpath)
-        self.keywords = keywords or []
+        self.tags = tags or []
         self.old_hash = old_hash or None
         self.ocr_text = ocr_text or ''
 
@@ -160,7 +160,7 @@ class TreeEncoder(json.JSONEncoder):
             return {'__note__': True,
                     'name': obj.name,
                     'fullpath': obj.fullpath,
-                    'keywords': obj.keywords,
+                    'tags': obj.tags,
                     'hash': obj.old_hash,
                     'ocr_text': obj.ocr_text}
         elif isinstance(obj, pathlib.PurePath):
@@ -172,13 +172,13 @@ def decode_tree(dct):
     ''' Object hook function to decode JSON into a NoteTree. '''
     if '__node__' in dct:
         node = NoteTree()
-        node.children = dct['children']
-        node.notes = dct['notes']
+        node.children = dct['children'] or {}
+        node.notes = dct['notes'] or {}
         return node
     elif '__note__' in dct:
         return Note(dct['name'],
                     dct['fullpath'],
-                    keywords=dct['keywords'],
+                    tags=dct['tags'],
                     ocr_text=dct['ocr_text'],
                     old_hash=dct['hash'])
     elif '__path__' in dct:

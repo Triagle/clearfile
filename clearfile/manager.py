@@ -33,14 +33,14 @@ class NoteManager(object):
         for root, dirs, files in os.walk(self.note_dir):
             tree_path = pathlib.Path(root).relative_to(self.note_dir).parts()
             for file in files:
-                note = note.Note(file, tree_path)
-                self.note_tree.insert(tree_path, note)
+                insert_note = note.Note(file, tree_path)
+                self.note_tree.insert(tree_path, insert_note)
 
     def add_note(self, filepath, **tesseract_opts):
         ''' Add a note to the note tree. '''
-        note = note.Note(filepath.name, filepath)
-        note.scan()
-        self.note_tree.insert(note.path(self.note_dir), note)
+        insert_note = note.Note(filepath.name, filepath)
+        insert_note.scan()
+        self.note_tree.insert(insert_note.path(self.note_dir), insert_note)
 
     def remove_missing_notes(self):
         ''' Remove notes in the note tree that no longer exist on the
@@ -68,11 +68,18 @@ class NoteManager(object):
         parts, _ = note.node_path_for_filepath(note_path, self.note_dir)
         self.note_tree.remove(parts, note_path.name)
 
-    def search_notes(self, query):
+    def search_notes(self, query, notebook=None):
         ''' Search the note tree for a given search query,
         matching the OCR'd text with regex. '''
         results = []
-        for candidate_note in self.note_tree.walk():
+
+        if notebook is not None:
+            node = self.note_tree[notebook]
+        else:
+            node = self.note_tree
+
+
+        for candidate_note in node.walk():
             if re.search(query, candidate_note.ocr_text, flags=re.IGNORECASE):
                 results.append(candidate_note)
         return results
