@@ -66,6 +66,17 @@ def watch(ctx):
 
 
 @cli.command()
+@click.pass_obj
+def list(ctx):
+    note_manager = ctx['note_manager']
+    with note_manager:
+        for note in note_manager.note_tree.walk():
+            keywords = ', '.join(note.keywords)
+            print(f'{note.name} ({keywords}):')
+            print(f'"{note.ocr_text}"')
+            print('')
+
+@cli.command()
 @click.argument('query')
 @click.pass_obj
 def search(ctx, query):
