@@ -68,6 +68,9 @@ class NoteManager(object):
         if old_note is not None:
             old_note.name = nname
             self.note_tree.insert(npath, old_note)
+        else:
+            # Treat as normal insertion
+            self.add_note(new_path)
 
     def remove_note(self, note_path):
         ''' Remove an existing note from the note tree. '''
