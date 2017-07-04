@@ -53,7 +53,7 @@ class NoteManager(object):
         file system. '''
         notes_to_remove = []
         for found_note in self.note_tree.walk():
-            if not note.exists:
+            if not found_note.exists:
                 note_path = found_note.path(self.note_dir)
                 notes_to_remove.append((note_path, found_note))
 
