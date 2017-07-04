@@ -1,3 +1,4 @@
+from clearfile import keywords
 import json
 import pathlib
 import hashlib
@@ -37,7 +38,10 @@ class Note(object):
         ''' Initialize note object. '''
         self.name = name
         self.fullpath = pathlib.Path(fullpath)
-        self.tags = set(tags) or set()
+        if tags:
+            self.tags = set(tags)
+        else:
+            self.tags = set()
         self.old_hash = old_hash or None
         self.ocr_text = ocr_text or ''
 
@@ -45,6 +49,7 @@ class Note(object):
         ''' Scan note using tesseract-ocr. '''
         image = Image.open(self.fullpath)
         self.ocr_text = pytesseract.image_to_string(image, **tesseract_opts)
+        self.tags = keywords.keywords_of('en_NZ', self.ocr_text)
 
     def path(self, relativeto):
         """ Get the note's path relative to some other path.
