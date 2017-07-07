@@ -16,7 +16,7 @@ def cli(ctx, clearfile_dir):
     ctx.obj['directory'] = clearfile_dir
 
 
-VALID_SUFFIXES = {'.png', '.jpe', '.jpeg', '.jpg'}
+VALID_SUFFIXES = {'.png', '.jpe', '.jpeg', '.jpg', '.bmp', '.pnm', '.tiff', '.jfif'}
 
 
 class NoteEventHandler(FileSystemEventHandler):
