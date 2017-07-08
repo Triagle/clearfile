@@ -1,8 +1,9 @@
-from clearfile import keywords
+from clearfile import keywords, preprocess
 import json
 import pathlib
 import hashlib
 from collections import deque
+import cv2
 try:
     import Image
 except ImportError:
@@ -47,7 +48,15 @@ class Note(object):
 
     def scan(self, **tesseract_opts):
         ''' Scan note using tesseract-ocr. '''
-        image = Image.open(self.fullpath)
+        image = cv2.imread(str(self.fullpath.absolute()))
+        cropped = preprocess.crop_to_page(image)
+        if cropped is None:
+            result = image
+        else:
+            result = cropped
+        bw_result = preprocess.conv_to_bw(result)
+        deskewed = preprocess.deskew(bw_result)
+        image = Image.fromarray(deskewed)
         self.ocr_text = pytesseract.image_to_string(image, **tesseract_opts)
         self.tags = keywords.keywords_of('en_NZ', self.ocr_text)
 
