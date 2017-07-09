@@ -9,7 +9,7 @@ setup(
         'pytesseract',
         'watchdog',
         'numpy',
-        'opencv-python'
+        'opencv-python',
         'click'
     ],
     entry_points='''
