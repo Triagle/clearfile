@@ -8,6 +8,8 @@ setup(
     install_requires=[
         'pytesseract',
         'watchdog',
+        'numpy',
+        'opencv-python'
         'click'
     ],
     entry_points='''
