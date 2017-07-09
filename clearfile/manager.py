@@ -1,9 +1,10 @@
 ''' Manage notes in a directory. '''
-from clearfile import note
 import json
+import os
 import pathlib
 import re
-import os
+
+from clearfile import note
 
 # A set of valid suffixes that are accepted from tesseract.
 # TODO: Make this set a complete set of all possible formats recognized by tesseract.

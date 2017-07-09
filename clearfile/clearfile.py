@@ -1,9 +1,12 @@
-import time
-import click
 import pathlib
-from clearfile import manager
-from watchdog.observers import Observer
+import time
+
+import click
 from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
+
+from clearfile import manager
+
 
 @click.group()
 @click.argument('clearfile_dir', type=click.Path(exists=True))

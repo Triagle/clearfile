@@ -1,6 +1,5 @@
-import numpy as np
 import cv2
-
+import numpy as np
 
 LOWER_THRESHOLD = 50
 UPPER_THRESHOLD = 190
