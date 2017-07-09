@@ -52,7 +52,9 @@ class Note(object):
         ''' Scan note using tesseract-ocr. '''
         image = cv2.imread(str(self.fullpath.absolute()))
         likeness, result = preprocess.warp_to_page(image)
-        if result is None or likeness < WARPING_CONFIDENCE_MIN:
+        upper_threshold = (1 - WARPING_CONFIDENCE_MIN) + 1
+        likely_paper = WARPING_CONFIDENCE_MIN < likeness < upper_threshold
+        if result is None or likely_paper:
             result = image
         image = Image.fromarray(result)
         self.ocr_text = pytesseract.image_to_string(image, **tesseract_opts)
