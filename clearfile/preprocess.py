@@ -84,6 +84,10 @@ def warp_to_page(img):
     ''' Perspective warps an image to a page it finds within that image. '''
     preprocessed = prepare(img)
     max_approx, page_contour = find_largest_rectangle(preprocessed)
+
+    if page_contour is None or max_approx is None:
+        return None
+
     rect = get_points(max_approx)
     maxWidth, maxHeight = get_dimensions(rect)
 
