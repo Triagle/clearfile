@@ -37,7 +37,8 @@ class Note(object):
     ''' Represents a single note (image). Holds information like ocr
     recovered text, the fullpath, tags, etc. '''
 
-    def __init__(self, name, fullpath, tags=None, ocr_text=None, old_hash=None):
+    def __init__(self, name, fullpath,
+                 tags=None, ocr_text=None, old_hash=None):
         ''' Initialize note object. '''
         self.name = name
         self.fullpath = pathlib.Path(fullpath)
@@ -169,7 +170,9 @@ class TreeEncoder(json.JSONEncoder):
     def default(self, obj):
         ''' overridden default to encode NoteTree into JSON. '''
         if isinstance(obj, NoteTree):
-            return {'__node__': True, 'children': obj.children, 'notes': obj.notes}
+            return {'__node__': True,
+                    'children': obj.children,
+                    'notes': obj.notes}
         elif isinstance(obj, Note):
             return {'__note__': True,
                     'name': obj.name,

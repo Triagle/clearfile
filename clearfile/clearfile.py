@@ -50,6 +50,7 @@ class NoteEventHandler(FileSystemEventHandler):
         with self.note_manager:
             self.note_manager.remove_note(path)
 
+
 @cli.command()
 @click.pass_obj
 def watch(ctx):
@@ -81,6 +82,7 @@ def list(ctx):
             print(f'{note.name} ({tags}):')
             print(f'"{note.ocr_text}"')
             print('')
+
 
 @cli.command()
 @click.argument('query')
