@@ -46,8 +46,9 @@ def find_largest_rectangle(img):
 
 
 def get_points(approx_contour):
+    ''' Get the vertices of a rectangle. '''
     approx_pts = approx_contour.reshape(4, 2)
-    rect = np.zeros((4, 2), dtype = "float32")
+    rect = np.zeros((4, 2), dtype="float32")
 
     # the top-left point has the smallest sum whereas the
     # bottom-right has the largest sum
