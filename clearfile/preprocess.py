@@ -1,5 +1,3 @@
-import math
-import numpy as np
 import cv2
 import numpy as np
 
@@ -109,6 +107,6 @@ def warp_to_page(img):
     # standard paper (A{n}) this ratio is to 1:sqrt(2), how close the ratio of
     # our side lengths is determines our confidence in the warp.
     ratio = max(maxWidth, maxHeight) / min(maxHeight, maxWidth)
-    likeness = (math.sqrt(2) / ratio) * 100
+    likeness = (np.sqrt(2) / ratio) * 100
 
     return likeness, warp
