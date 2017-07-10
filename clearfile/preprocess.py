@@ -1,15 +1,16 @@
-import numpy as np
 import cv2
-
+import numpy as np
 
 LOWER_THRESHOLD = 50
 UPPER_THRESHOLD = 190
 
 
-def crop(img, contour):
+def crop(img, contour, xpad=100, ypad=100):
     ''' Crop an image to the bounding rectangle of a contour. '''
     x, y, w, h = cv2.boundingRect(contour)
-    return img[y:y + h, x:x + w]
+    y = y - ypad
+    x = x - xpad
+    return img[y:y + h + 2 * ypad, x:x + w + 2 * xpad]
 
 
 def prepare(img):
@@ -28,6 +29,7 @@ def find_largest_rectangle(img):
     # Take the largest rectangular contour (by area) from the list of
     # discovered contours.
     max_contour = None
+    max_approx = None
     for contour in contours:
         epsilon = 0.01 * cv2.arcLength(contour, True)
         approx = cv2.approxPolyDP(contour, epsilon, True)
@@ -39,56 +41,81 @@ def find_largest_rectangle(img):
             larger_contour = contour_area > max_contour_area
         if is_rectangle and larger_contour:
             max_contour = contour
-    return max_contour
+            max_approx = approx
+    return max_approx, max_contour
 
 
-def crop_to_page(img):
-    ''' Crops an image to a page it finds within that image. The bounding
-    rectangle is not minimal in size, but the background is blacked out to
-    avoid tripping up OCR images. '''
-    new_image = img.copy()
-    mask = np.full(img.shape, (0, 0, 0), dtype=img.dtype)
+def get_points(approx_contour):
+    ''' Get the vertices of a rectangle. '''
+    approx_pts = approx_contour.reshape(4, 2)
+    rect = np.zeros((4, 2), dtype="float32")
+
+    # the top-left point has the smallest sum whereas the
+    # bottom-right has the largest sum
+    s = approx_pts.sum(axis=1)
+    rect[0] = approx_pts[np.argmin(s)]
+    rect[2] = approx_pts[np.argmax(s)]
+
+    # compute the difference between the points -- the top-right
+    # will have the minumum difference and the bottom-left will
+    # have the maximum difference
+    diff = np.diff(approx_pts, axis=1)
+    rect[1] = approx_pts[np.argmin(diff)]
+    rect[3] = approx_pts[np.argmax(diff)]
+    return rect
+
+
+def euclidean_distance(p, q):
+    ''' Calculate the euclidean distance between two points p and q. '''
+    x, y = p
+    x1, y1 = q
+    return np.sqrt(((x - x1) ** 2) + ((y - y1) ** 2))
+
+
+def get_dimensions(rect):
+    ''' Get the dimensions of a rectangle. '''
+    (tl, tr, br, bl) = rect
+    widthA = euclidean_distance(br, bl)
+    widthB = euclidean_distance(tr, tl)
+    heightA = euclidean_distance(tr, br)
+    heightB = euclidean_distance(tl, bl)
+
+    # take the maximum of the width and height values to reach
+    # our final dimensions
+    maxWidth = max(int(widthA), int(widthB))
+    maxHeight = max(int(heightA), int(heightB))
+    return maxWidth, maxHeight
+
+
+def warp_to_page(img):
+    ''' Perspective warps an image to a page it finds within that image. '''
     preprocessed = prepare(img)
-    page_contour = find_largest_rectangle(preprocessed)
-    if page_contour is not None:
-        cv2.fillPoly(mask, [page_contour], (255, 255, 255))
-        mask = np.logical_not(mask)
-        new_image[mask] = 255
-        return crop(new_image, page_contour)
-    else:
+    max_approx, page_contour = find_largest_rectangle(preprocessed)
+
+    if page_contour is None or max_approx is None:
         return None
 
+    rect = get_points(max_approx)
+    maxWidth, maxHeight = get_dimensions(rect)
 
-def conv_to_bw(img):
-    ''' Convert an image to black and white using thresholding. '''
-    img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    _, img_bw = cv2.threshold(img_gray, 128, 255, cv2.THRESH_BINARY_INV)
-    return img_bw
+    # construct our destination points which will be used to
+    # map the screen to a top-down, "birds eye" view
+    dst = np.array([
+        [0, 0],
+        [maxWidth - 1, 0],
+        [maxWidth - 1, maxHeight - 1],
+        [0, maxHeight - 1]], dtype="float32")
 
+    # calculate the perspective transform matrix and warp
+    # the perspective to grab the screen
+    M = cv2.getPerspectiveTransform(rect, dst)
+    warp = cv2.warpPerspective(img, M, (maxWidth, maxHeight))
 
-def deskew(img):
-    ''' Deskew image content with respect to the background of the image. '''
-    # Take all points that aren't black
-    coords = np.column_stack(np.where(img > 0))
-    # Find the minimum area rectangle that encompasses all of those points
-    # We only care about the angle of this rectangle, because we're going to
-    # rotate it.
-    angle = cv2.minAreaRect(coords)[-1]
+    # The likeness of the found page to an expected page is calculated using
+    # the ratio of the shortest side length to the longest side length. On
+    # standard paper (A{n}) this ratio is to 1:sqrt(2), how close the ratio of
+    # our side lengths is determines our confidence in the warp.
+    ratio = max(maxWidth, maxHeight) / min(maxHeight, maxWidth)
+    likeness = (np.sqrt(2) / ratio) * 100
 
-    # The angle given by minAreaRect is in the range [-90, 0), so we need to
-    # convert it to a positive angle to correct by.
-    if angle < -45:
-        # A special case exists where the angle is -45 degrees, we have to add
-        # 90 degrees to the angle
-        angle = -(90 + angle)
-    else:
-        angle = -angle
-
-    h, w = img.shape[:2]
-    center = (w // 2, h // 2)
-
-    rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
-    rotated = cv2.warpAffine(img, rotation_matrix, (w, h),
-                             flags=cv2.INTER_CUBIC,
-                             borderMode=cv2.BORDER_REPLICATE)
-    return rotated
+    return likeness, warp

@@ -1,13 +1,10 @@
 ''' Manage notes in a directory. '''
-from clearfile import note
 import json
+import os
 import pathlib
 import re
-import os
 
-# A set of valid suffixes that are accepted from tesseract.
-# TODO: Make this set a complete set of all possible formats recognized by tesseract.
-VALID_SUFFIXES = {'.png', '.jpe', '.jpeg', '.jpg'}
+from clearfile import note
 
 
 class NoteManager(object):
@@ -24,7 +21,8 @@ class NoteManager(object):
         ''' Open note_tree file and deserialize note_tree from json found there. '''
         try:
             with open(self.database_file, 'r') as db_file:
-                self.note_tree = json.load(db_file, object_hook=note.decode_tree)
+                self.note_tree = json.load(db_file,
+                                           object_hook=note.decode_tree)
         except (FileNotFoundError, json.JSONDecodeError) as e:
             self.note_tree = note.NoteTree()
 
@@ -43,7 +41,8 @@ class NoteManager(object):
         self.note_tree.insert(insert_note.path(self.note_dir), insert_note)
 
     def tag(self, note_path, tags):
-        note_path, note_name = note.node_path_for_filepath(note_path, self.note_dir)
+        note_path, note_name = note.node_path_for_filepath(note_path,
+                                                           self.note_dir)
         selected_node = self.note_tree[note_path]
         selected_note = selected_node.notes[note_name]
         selected_note.tags.update(tags)
@@ -86,7 +85,6 @@ class NoteManager(object):
             node = self.note_tree[notebook]
         else:
             node = self.note_tree
-
 
         for candidate_note in node.walk():
             if re.search(query, candidate_note.ocr_text, flags=re.IGNORECASE):

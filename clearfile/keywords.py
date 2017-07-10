@@ -1,6 +1,7 @@
-from rake_nltk import Rake
 import itertools
+
 import enchant
+from rake_nltk import Rake
 
 
 def keywords_of(lang, text, k=10):

@@ -11,6 +11,10 @@ except ImportError:
 import pytesseract
 # Buffer size for reading in image files to hash
 HASH_BUF_SIZE = 65536
+# Paper must be within 0.8x and 1.2x the normal ratio.
+# See preprocess.warp_to_page
+WARPING_THRESHOLD_MIN = 0.8
+WARPING_THRESHOLD_MAX = 1.2
 
 
 def node_path_for_filepath(path, relativeto):
@@ -35,7 +39,8 @@ class Note(object):
     ''' Represents a single note (image). Holds information like ocr
     recovered text, the fullpath, tags, etc. '''
 
-    def __init__(self, name, fullpath, tags=None, ocr_text=None, old_hash=None):
+    def __init__(self, name, fullpath,
+                 tags=None, ocr_text=None, old_hash=None):
         ''' Initialize note object. '''
         self.name = name
         self.fullpath = pathlib.Path(fullpath)
@@ -49,14 +54,11 @@ class Note(object):
     def scan(self, **tesseract_opts):
         ''' Scan note using tesseract-ocr. '''
         image = cv2.imread(str(self.fullpath.absolute()))
-        cropped = preprocess.crop_to_page(image)
-        if cropped is None:
+        likeness, result = preprocess.warp_to_page(image)
+        likely_paper = WARPING_THRESHOLD_MIN < likeness < WARPING_THRESHOLD_MAX
+        if result is None or not likely_paper:
             result = image
-        else:
-            result = cropped
-        bw_result = preprocess.conv_to_bw(result)
-        deskewed = preprocess.deskew(bw_result)
-        image = Image.fromarray(deskewed)
+        image = Image.fromarray(result)
         self.ocr_text = pytesseract.image_to_string(image, **tesseract_opts)
         self.tags = keywords.keywords_of('en_NZ', self.ocr_text)
 
@@ -169,7 +171,9 @@ class TreeEncoder(json.JSONEncoder):
     def default(self, obj):
         ''' overridden default to encode NoteTree into JSON. '''
         if isinstance(obj, NoteTree):
-            return {'__node__': True, 'children': obj.children, 'notes': obj.notes}
+            return {'__node__': True,
+                    'children': obj.children,
+                    'notes': obj.notes}
         elif isinstance(obj, Note):
             return {'__note__': True,
                     'name': obj.name,

@@ -1,9 +1,12 @@
-import time
-import click
 import pathlib
-from clearfile import manager
-from watchdog.observers import Observer
+import time
+
+import click
 from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
+
+from clearfile import manager
+
 
 @click.group()
 @click.argument('clearfile_dir', type=click.Path(exists=True))
@@ -43,9 +46,10 @@ class NoteEventHandler(FileSystemEventHandler):
 
     def on_deleted(self, event):
         path = pathlib.PurePath(event.src_path)
-        print(f'- {path.name}')
         with self.note_manager:
             self.note_manager.remove_note(path)
+        print(f'- {path.name}')
+
 
 @cli.command()
 @click.pass_obj
@@ -78,6 +82,7 @@ def list(ctx):
             print(f'{note.name} ({tags}):')
             print(f'"{note.ocr_text}"')
             print('')
+
 
 @cli.command()
 @click.argument('query')
