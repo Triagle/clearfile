@@ -6,10 +6,6 @@ import re
 
 from clearfile import note
 
-# A set of valid suffixes that are accepted from tesseract.
-# TODO: Make this set a complete set of all possible formats recognized by tesseract.
-VALID_SUFFIXES = {'.png', '.jpe', '.jpeg', '.jpg'}
-
 
 class NoteManager(object):
     ''' NoteManager manages the notes directory. NoteManager contains
