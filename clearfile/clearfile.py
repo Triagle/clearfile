@@ -46,9 +46,9 @@ class NoteEventHandler(FileSystemEventHandler):
 
     def on_deleted(self, event):
         path = pathlib.PurePath(event.src_path)
-        print(f'- {path.name}')
         with self.note_manager:
             self.note_manager.remove_note(path)
+        print(f'- {path.name}')
 
 
 @cli.command()
