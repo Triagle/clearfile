@@ -11,8 +11,10 @@ except ImportError:
 import pytesseract
 # Buffer size for reading in image files to hash
 HASH_BUF_SIZE = 65536
-# Minimum confidence in the page warping
-WARPING_CONFIDENCE_MIN = 0.8
+# Paper must be within 0.8x and 1.2x the normal ratio.
+# See preprocess.warp_to_page
+WARPING_THRESHOLD_MIN = 0.8
+WARPING_THRESHOLD_MAX = 1.2
 
 
 def node_path_for_filepath(path, relativeto):
@@ -53,9 +55,8 @@ class Note(object):
         ''' Scan note using tesseract-ocr. '''
         image = cv2.imread(str(self.fullpath.absolute()))
         likeness, result = preprocess.warp_to_page(image)
-        upper_threshold = (1 - WARPING_CONFIDENCE_MIN) + 1
-        likely_paper = WARPING_CONFIDENCE_MIN < likeness < upper_threshold
-        if result is None or likely_paper:
+        likely_paper = WARPING_THRESHOLD_MIN < likeness < WARPING_THRESHOLD_MAX
+        if result is None or not likely_paper:
             result = image
         image = Image.fromarray(result)
         self.ocr_text = pytesseract.image_to_string(image, **tesseract_opts)
