@@ -64,12 +64,20 @@ def get_points(approx_contour):
     return rect
 
 
+def euclidean_distance(p, q):
+    ''' Calculate the euclidean distance between two points p and q. '''
+    x, y = p
+    x1, y1 = q
+    return np.sqrt(((x - x1) ** 2) + ((y - y1) ** 2))
+
+
 def get_dimensions(rect):
+    ''' Get the dimensions of a rectangle. '''
     (tl, tr, br, bl) = rect
-    widthA = np.sqrt(((br[0] - bl[0]) ** 2) + ((br[1] - bl[1]) ** 2))
-    widthB = np.sqrt(((tr[0] - tl[0]) ** 2) + ((tr[1] - tl[1]) ** 2))
-    heightA = np.sqrt(((tr[0] - br[0]) ** 2) + ((tr[1] - br[1]) ** 2))
-    heightB = np.sqrt(((tl[0] - bl[0]) ** 2) + ((tl[1] - bl[1]) ** 2))
+    widthA = euclidean_distance(br, bl)
+    widthB = euclidean_distance(tr, tl)
+    heightA = euclidean_distance(tr, br)
+    heightB = euclidean_distance(tl, bl)
 
     # take the maximum of the width and height values to reach
     # our final dimensions
