@@ -16,7 +16,7 @@ def crop(img, contour, xpad=100, ypad=100):
 def prepare(img):
     '''Prepare an image for crop_to_page. Performs a Gaussian blur, then converts
     the result image to black and white. '''
-    blur = cv2.GaussianBlur(img, (1, 1), 0)
+    blur = cv2.GaussianBlur(img, (5, 5), 0)
     return cv2.cvtColor(blur, cv2.COLOR_BGR2GRAY)
 
 
