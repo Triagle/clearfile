@@ -1,101 +1,113 @@
+import os
 import pathlib
+import itertools
+import sqlite3
 import time
+import mimetypes
+import json
+import uuid
 
 import click
+from flask import Flask, render_template, request, send_file, send_from_directory
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
-from clearfile import manager
+from clearfile import db, note
+
+app = Flask(__name__)
+DB_FILE = './static/clearfile/clearfile.db'
+SCHEMA_FILE = 'clearfile.sql'
+db.create_db_if_not_exists(SCHEMA_FILE, DB_FILE)
+app.config.update(
+    TEMPLATES_AUTO_RELOAD=True
+)
+app.config['CLEARFILE_DIR'] = './static/clearfile'
 
 
-@click.group()
-@click.argument('clearfile_dir', type=click.Path(exists=True))
-@click.pass_context
-def cli(ctx, clearfile_dir):
-    ''' Manage and search physical notes stored in a digital clearfile. '''
-    ctx.obj = {}
-    note_manager = manager.NoteManager(clearfile_dir)
-    ctx.obj['note_manager'] = note_manager
-    ctx.obj['directory'] = clearfile_dir
+def make_error(message):
+    return json.dumps({
+        'status': 'error',
+        'message': message
+    })
+
+def ok(message=None):
+    return json.dumps({
+        'status': 'ok',
+        'message':  message
+    })
 
 
-VALID_SUFFIXES = {'.png', '.jpe', '.jpeg', '.jpg', '.bmp', '.pnm', '.tiff', '.jfif'}
+@app.route('/')
+def web():
+    return render_template('index.html')
 
 
-class NoteEventHandler(FileSystemEventHandler):
-
-    def __init__(self, note_manager):
-        super().__init__()
-        self.note_manager = note_manager
-
-    def on_created(self, event):
-        path = pathlib.PurePath(event.src_path)
-        if not event.is_directory and path.suffix in VALID_SUFFIXES:
-            with self.note_manager:
-                self.note_manager.add_note(path)
-            print(f'+ {path.name}')
-
-    def on_moved(self, event):
-        path = pathlib.PurePath(event.src_path)
-        dest_path = pathlib.PurePath(event.dest_path)
-        if not event.is_directory and dest_path.suffix in VALID_SUFFIXES:
-            with self.note_manager:
-                self.note_manager.rename_note(path, dest_path)
-
-        print(f'{path.name} -> {dest_path.name}')
-
-    def on_deleted(self, event):
-        path = pathlib.PurePath(event.src_path)
-        with self.note_manager:
-            self.note_manager.remove_note(path)
-        print(f'- {path.name}')
+@app.route('/search', methods=['GET'])
+def search():
+    conn = sqlite3.connect(DB_FILE)
+    with conn:
+        search = request.args.get('query', default='')
+        if search == '':
+            notes = db.get_notes(conn)
+        else:
+            notes = db.note_search(conn, search)
+        return json.dumps(notes, cls=note.NoteEncoder)
 
 
-@cli.command()
-@click.pass_obj
-def watch(ctx):
-    ''' Watch a directory for changes. '''
-    note_manager = ctx['note_manager']
-    with note_manager:
-        note_manager.remove_missing_notes()
-    directory = ctx['directory']
-    note_watch = NoteEventHandler(note_manager)
-    observer = Observer()
-    observer.schedule(note_watch, directory, recursive=True)
-    observer.start()
+@app.route('/note/<uuid>')
+def get_note(uuid):
+    conn = sqlite3.connect(DB_FILE)
+    with conn:
+        note = db.note_for_uuid(conn, uuid)
+        return json.dumps(note, cls=note.NoteEncoder)
+
+@app.route('/uploads/<uuid>')
+def uploads(uuid):
+    conn = sqlite3.connect(DB_FILE)
+    with conn:
+        user_note = db.note_for_uuid(conn, uuid)
+        return send_from_directory(app.config['CLEARFILE_DIR'], uuid, mimetype=user_note.mime)
+
+@app.route('/upload', methods=['POST'])
+def handle_upload():
+    image = request.files['image']
+    note_uuid = str(uuid.uuid4())
+    mime, _ = mimetypes.guess_type(image.filename)
+    path = os.path.join(app.config['CLEARFILE_DIR'], note_uuid)
+    path = os.path.abspath(path)
+    image.save(path)
+    title = request.form['title']
+    user_note = note.Note(note_uuid, title, mime, path)
+    note.scan_note(path, user_note)
+    conn = sqlite3.connect(DB_FILE)
+    with conn:
+        db.add_note(conn, user_note)
+    return ok()
+
+@app.route('/delete-tag/<tag_id>', methods=['GET'])
+def handle_delete_tag(tag_id):
     try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        observer.stop()
-    observer.join()
+        tag_id = int(tag_id)
+    except ValueError:
+        return make_error('Invalid tag id.')
+
+    conn = sqlite3.connect(DB_FILE)
+    with conn:
+        db.delete_tag(conn, tag_id)
+
+    return ok()
 
 
-@cli.command()
-@click.pass_obj
-def list(ctx):
-    ''' List notes in the clearfile directory. '''
-    note_manager = ctx['note_manager']
-    with note_manager:
-        for note in note_manager.note_tree.walk():
-            tags = ', '.join(note.tags)
-            print(f'{note.name} ({tags}):')
-            print(f'"{note.ocr_text}"')
-            print('')
-
-
-@cli.command()
-@click.argument('query')
-@click.option('--notebook', default=None, help='Search for notes inside notebook (directory)')
-@click.pass_obj
-def search(ctx, query, notebook):
-    ''' Search notes for a regular expression. '''
-    note_manager = ctx['note_manager']
-
-    if notebook is not None:
-        notebook = pathlib.Path(notebook)
-
-    with note_manager:
-        query_results = note_manager.search_notes(query, notebook=notebook)
-        for note in query_results:
-            click.echo(note.fullpath)
+@app.route('/delete/<uuid>', methods=['GET'])
+def handle_delete(uuid):
+    conn = sqlite3.connect(DB_FILE)
+    try:
+        with conn:
+            db.delete_note(conn, uuid)
+        path = os.path.join(app.config['CLEARFILE_DIR'], uuid)
+        os.unlink(path)
+        return ok()
+    except KeyError as e:
+        return make_error(e.message)
+    except FileNotFoundError as f:
+        return make_error('Note no longer exists.')
