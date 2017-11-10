@@ -9,13 +9,20 @@ from flask import Flask, render_template, request, send_from_directory
 from clearfile import db, note
 
 app = Flask(__name__)
-DB_FILE = './static/clearfile/clearfile.db'
-SCHEMA_FILE = 'clearfile.sql'
-db.create_db_if_not_exists(SCHEMA_FILE, DB_FILE)
 app.config.update(
     TEMPLATES_AUTO_RELOAD=True
 )
-app.config['CLEARFILE_DIR'] = './static/clearfile'
+
+
+def setup_environments():
+    clearfile_dir = os.environ.get('CLEARFILE_DIR')
+    db_file = os.path.join(clearfile_dir, 'clearfile.db')
+    app.config['CLEARFILE_DIR'] = clearfile_dir
+    app.config['DB_FILE'] = db_file
+
+
+setup_environments()
+db.create_db_if_not_exists('clearfile.sql', app.config['DB_FILE'])
 
 
 def make_error(message):
@@ -23,6 +30,7 @@ def make_error(message):
         'status': 'error',
         'message': message
     })
+
 
 def ok(message=None):
     return json.dumps({
@@ -38,7 +46,7 @@ def web():
 
 @app.route('/search', methods=['GET'])
 def search():
-    conn = sqlite3.connect(DB_FILE)
+    conn = sqlite3.connect(app.config['DB_FILE'])
     with conn:
         search = request.args.get('query', default='')
         if search == '':
@@ -50,14 +58,14 @@ def search():
 
 @app.route('/note/<uuid>')
 def get_note(uuid):
-    conn = sqlite3.connect(DB_FILE)
+    conn = sqlite3.connect(app.config['DB_FILE'])
     with conn:
         note = db.note_for_uuid(conn, uuid)
         return json.dumps(note, cls=note.NoteEncoder)
 
 @app.route('/uploads/<uuid>')
 def uploads(uuid):
-    conn = sqlite3.connect(DB_FILE)
+    conn = sqlite3.connect(app.config['DB_FILE'])
     with conn:
         user_note = db.note_for_uuid(conn, uuid)
         return send_from_directory(app.config['CLEARFILE_DIR'], uuid, mimetype=user_note.mime)
@@ -73,7 +81,7 @@ def handle_upload():
     title = request.form['title']
     user_note = note.Note(note_uuid, title, mime, path)
     note.scan_note(path, user_note)
-    conn = sqlite3.connect(DB_FILE)
+    conn = sqlite3.connect(app.config['DB_FILE'])
     with conn:
         db.add_note(conn, user_note)
     return ok()
@@ -85,7 +93,7 @@ def handle_delete_tag(tag_id):
     except ValueError:
         return make_error('Invalid tag id.')
 
-    conn = sqlite3.connect(DB_FILE)
+    conn = sqlite3.connect(app.config['DB_FILE'])
     with conn:
         db.delete_tag(conn, tag_id)
 
@@ -94,7 +102,7 @@ def handle_delete_tag(tag_id):
 
 @app.route('/delete/<uuid>', methods=['GET'])
 def handle_delete(uuid):
-    conn = sqlite3.connect(DB_FILE)
+    conn = sqlite3.connect(app.config['DB_FILE'])
     try:
         with conn:
             db.delete_note(conn, uuid)
