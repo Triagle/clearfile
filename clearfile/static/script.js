@@ -13,7 +13,7 @@ function buildDom(nodes) {
 function emptyNotes() {
     var html = `<div class="col s12 m12 l12" id="no-notes-found">
                     <div class="full-height valign-wrapper">
-                        <h2 class="center-align full-width grey-text text-lighten-1">No notes.</h1>
+                        <h2 class="center-align full-width grey-text text-lighten-1">No Notes.</h1>
                     </div>
                 </div>
                 <div class="col s12 m12 l12">
