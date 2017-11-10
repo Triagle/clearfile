@@ -1,16 +1,10 @@
 import os
-import pathlib
-import itertools
 import sqlite3
-import time
 import mimetypes
 import json
 import uuid
 
-import click
-from flask import Flask, render_template, request, send_file, send_from_directory
-from watchdog.events import FileSystemEventHandler
-from watchdog.observers import Observer
+from flask import Flask, render_template, request, send_from_directory
 
 from clearfile import db, note
 
