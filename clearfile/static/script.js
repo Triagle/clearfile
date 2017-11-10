@@ -77,13 +77,15 @@ function buildNoteCard(uuid, title, image_link, tags, link) {
 }
 
 function addResults(query) {
-    var clearfile_search_results = document.getElementById("clearfile-search-results");
-    $("#no-notes-found").remove();
+
     $.get('/search?query=' + query, function (text, status) {
         let json = JSON.parse(text);
         if (json.length === 0) {
             emptyNotes();
         } else {
+            $("#no-notes-found").remove();
+            $("#clearfile-search-results").empty();
+            var clearfile_search_results = document.getElementById("clearfile-search-results");
             for (let card of json) {
                 let link = '/uploads/' + card.uuid;
                 let dom_card = buildNoteCard(card.uuid, card.name, link, card.tags, link);
@@ -112,21 +114,15 @@ $(document).ready(function() {
     $("#clearfile-search-input").val("");
     $('.search-result-container').on('click', '.delete-note', function (event) {
         event.preventDefault();
-        let card = $(this).parents("div.card");
         $.get($(this).attr("href"), function (text, status) {
             let response = JSON.parse(text);
             if (response.status === "ok") {
                 Materialize.toast("Note Deleted.", 1000);
-                var searchList = $(this).parents("clearfile-search-results");
-                card.remove();
-                if (searchList.children().length === 0) {
-                    emptyNotes();
-                }
             } else {
                 Materialize.toast("Error deleting note.", 1000);
             }
+            addResults("");
         });
-        addResults("");
     });
     $('#form-upload-button').on('click', function() {
         $.ajax({
