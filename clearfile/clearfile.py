@@ -22,7 +22,7 @@ def setup_environments():
 
 
 setup_environments()
-db.create_db_if_not_exists('clearfile.sql', app.config['DB_FILE'])
+db.create_db_if_not_exists(os.path.join(app.root_path, 'clearfile.sql'), app.config['DB_FILE'])
 
 
 def make_error(message):
