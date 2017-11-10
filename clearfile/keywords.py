@@ -11,10 +11,10 @@ def keywords_of(lang, text, k=10):
     r.extract_keywords_from_text(text)
     keywords = set()
     phrases = r.get_ranked_phrases()
-    for index, keyword in enumerate(itertools.chain(phrases)):
+    for phrase in itertools.chain(phrases):
         if len(keywords) > k:
             break
-        word_set = set(k for k in keyword.split(' ') if dictionary.check(k))
+        word_set = set(k for k in phrase.split(' ') if dictionary.check(k) and len(k) >= 4)
         keywords.update(word_set)
 
     return keywords

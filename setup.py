@@ -7,10 +7,14 @@ setup(
     packages=find_packages(),
     install_requires=[
         'pytesseract',
-        'watchdog',
         'numpy',
+        # Comment out if your opencv came from elsewhere.
         'opencv-python',
-        'click'
+        'flask',
+        'fuzzywuzzy',
+        'rake_nltk',
+        'pillow',
+        'pyenchant'
     ],
     entry_points='''
         [console_scripts]
