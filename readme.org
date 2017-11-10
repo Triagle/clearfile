@@ -1,6 +1,6 @@
 #+TITLE: Clearfile
 
-Clearfile intends to replace your physical clearfile. It uses[[https://github.com/tesseract-ocr/tesseract][
+Clearfile intends to augment your physical clearfile. It uses[[https://github.com/tesseract-ocr/tesseract][
 tesseract]] optical character recognition to digitally curate your
 clearfile into a searchable digital database.
 
@@ -10,7 +10,7 @@ periods of time without damaging them. Yet they are often difficult to
 manage, leading to the inevitable scenario of dozens of pages stuffed
 into a few clearfile sleeves. Worse still they're unsearchable in any
 capacity, finding that all important hand out on differential
-equations couldn't be more difficult. Clearfile uses the power of
+equations couldn't be more difficult. The digital clearfile uses the power of
 optical character recognition to give you some semblance of sanity in
 this so often desperately unorganized mess. Hopefully with the
 addition of tagging and notebooks, high order structure can help you
@@ -23,3 +23,41 @@ Naturally this won't replace forms you need to sign - somethings truly
 are best kept on paper - but the idea is to transition as much as you
 can from the unorganized physical word into the higher order
 abstraction and search-ability of the digital one.
+
+* Installation
+
+Installing clearfile is relatively simple, clone the directory and then install
+the dependencies using pip:
+
+#+BEGIN_SRC shell
+  pip install pytesseract numpy opencv-python flask fuzzywuzzy rake_nltk pillow pyenchant
+#+END_SRC
+
+Note that if you are installing clearfile on something like a Raspberry Pi
+opencv will not be available through pip. Just leave out the package from the
+dependency list and compile your own copy of opencv manually.
+
+After this you are done, you can test the project with =flask= if you wish to from
+the root directory.
+
+#+BEGIN_SRC shell
+  # Leave out the 0.0.0.0 bit if you only want to view it on your own computer
+  FLASK_APP=clearfile/clearfile flask run --host 0.0.0.0
+#+END_SRC
+
+Running this should bring up a web page with 'No Notes.' in the centre.
+
+[[file:screenshot.png]]
+
+* Usage
+
+Usage is pretty simple, click the teal upload button to add an image to your
+clearfile. Use the search bar up top to search through the text of all your
+notes, and you'll get all the relevant results sorted by their match to your
+query. Tags appear underneath the image to try and give you an idea of what's in
+the image, think of it like a word cloud so you can prompt your memory on old
+notes without having to open and read them. If you find a tag unhelpful or
+non-descriptive, click the "x" to remove them from that note. View and Delete
+are self-explanatory click on them to view or delete a note respectively. The
+interface is deigned to be as intuitive and out of the way as possible,
+focusing more on getting the text analysis right than anything else.
