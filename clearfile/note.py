@@ -1,19 +1,19 @@
 from clearfile import keywords, preprocess
 import json
 import pathlib
+import os
 from collections import namedtuple
-import cv2
 try:
     import Image
 except ImportError:
     from PIL import Image
+import tempfile
 import pytesseract
+
 # Buffer size for reading in image files to hash
 HASH_BUF_SIZE = 65536
 # Paper must be within 0.8x and 1.2x the normal ratio.
 # See preprocess.warp_to_page
-WARPING_THRESHOLD_MIN = 0.8
-WARPING_THRESHOLD_MAX = 1.2
 
 Tag = namedtuple('Tag', ['id', 'tag'])
 
@@ -40,11 +40,10 @@ class Note(object):
     ''' Represents a single note (image). Holds information like ocr
     recovered text, the fullpath, tags, etc. '''
 
-    def __init__(self, uuid, name, mime, ocr_text=None, tags=None):
+    def __init__(self, uuid, name, ocr_text=None, tags=None):
         ''' Initialize note object. '''
         self.uuid = uuid
         self.name = name
-        self.mime = mime
         self.tags = tags or []
         self.ocr_text = ocr_text or ''
 
@@ -59,16 +58,13 @@ class Note(object):
 
 
 
-def scan_note(filename, note, **tesseract_opts):
+def scan_note(note, image, **tesseract_opts):
     ''' Scan note using tesseract-ocr. '''
-    image = cv2.imread(str(filename))
-    likeness, result = preprocess.warp_to_page(image)
-    likely_paper = WARPING_THRESHOLD_MIN < likeness < WARPING_THRESHOLD_MAX
-    if result is None or not likely_paper:
-        result = image
-    image = Image.fromarray(result)
-    note.ocr_text = pytesseract.image_to_string(image, **tesseract_opts)
-    note.tags = keywords.keywords_of('en_NZ', note.ocr_text)
+    with tempfile.NamedTemporaryFile(suffix='.jpg') as fp:
+        image.save(fp.name)
+        os.system(f'textcleaner -g -e none -f 10 -o 5 {fp.name} {fp.name}')
+        note.ocr_text = pytesseract.image_to_string(Image.open(fp.name), **tesseract_opts)
+        note.tags = keywords.keywords_of('en_NZ', note.ocr_text)
 
 
 class NoteEncoder(json.JSONEncoder):
@@ -79,7 +75,6 @@ class NoteEncoder(json.JSONEncoder):
             tags = [{"id": tag.id, "tag": tag.tag} for tag in obj.tags]
             return {'uuid': obj.uuid,
                     'name': obj.name,
-                    'mime': obj.mime,
                     'tags': tags,
                     'ocr_text': obj.ocr_text}
         elif isinstance(obj, pathlib.PurePath):
