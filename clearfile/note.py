@@ -1,4 +1,4 @@
-from clearfile import keywords, preprocess
+from clearfile import keywords
 import json
 import pathlib
 import os
