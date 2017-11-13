@@ -35,8 +35,8 @@ function buildNoteCard(uuid, title, image_link, tags, link) {
     var card_image = document.createElement("div");
     card_image.classList.add("card-image");
     var image = document.createElement("img");
+    image.classList.add("materialboxed");
     image.src = image_link;
-    // image.setAttribute("src", image);
     var card_title = document.createElement("span");
     card_title.classList.add("card-title");
     card_title.appendChild(document.createTextNode(title));
@@ -92,6 +92,7 @@ function addResults(query) {
                 clearfile_search_results.appendChild(dom_card);
             }
         }
+        $('.materialboxed').materialbox();
     });
 }
 
