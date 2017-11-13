@@ -8,7 +8,6 @@ CREATE TABLE IF NOT EXISTS `tags` (
 CREATE TABLE IF NOT EXISTS `notes` (
 	`uuid`	TEXT,
 	`name`	TEXT,
-	`mime`	TEXT,
 	`ocr_text`	TEXT,
 	PRIMARY KEY(`uuid`)
 );

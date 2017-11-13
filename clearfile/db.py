@@ -9,7 +9,7 @@ from clearfile import note
 def note_for_uuid(conn, uuid):
     ''' For a given uuid, return a note class representing it. '''
     cursor = conn.cursor()
-    cursor.execute('select uuid, name, mime, ocr_text from notes where notes.uuid = ?', (uuid,))
+    cursor.execute('select uuid, name, ocr_text from notes where notes.uuid = ?', (uuid,))
     result = cursor.fetchone()
     if result is None:
         return None
@@ -29,7 +29,7 @@ def get_tags_for_note(cursor, uuid):
 
 def get_notes(conn):
     cursor = conn.cursor()
-    results = cursor.execute('select uuid, name, mime, ocr_text from notes')
+    results = cursor.execute('select uuid, name, ocr_text from notes')
     notes = []
     for result in results.fetchall():
         tags = get_tags_for_note(cursor, result[0])
@@ -46,8 +46,8 @@ def note_search(conn, search):
 
 def add_note(conn, user_note):
     cursor = conn.cursor()
-    cursor.execute('insert into notes (uuid, name, mime, ocr_text) values (?, ?, ?, ?)',
-                   (user_note.uuid, user_note.name, user_note.mime, user_note.ocr_text))
+    cursor.execute('insert into notes (uuid, name, ocr_text) values (?, ?, ?)',
+                   (user_note.uuid, user_note.name, user_note.ocr_text))
 
     for tag in user_note.tags:
         cursor.execute('insert into tags (note_uuid, tag) values (?, ?)', (user_note.uuid, tag))
