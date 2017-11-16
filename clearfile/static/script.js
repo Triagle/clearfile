@@ -16,9 +16,7 @@ function emptyNotes() {
                         <h2 class="center-align full-width grey-text text-lighten-1">No Notes.</h1>
                     </div>
                 </div>
-                <div class="col s12 m12 l12">
-                    <ul id="clearfile-search-results" class="search-results">
-                    </ul>
+                <div class="col s12 cards-container" id="clearfile-search-results">
                 </div>`;
     var noteResults = $(".search-result-container");
     noteResults.html(html)
@@ -64,15 +62,14 @@ function buildNoteCard(uuid, title, image_link, tags, link) {
     delete_link.classList.add("delete-note");
     delete_link.href = "/delete/" + uuid;
     delete_link.innerHTML = "Delete";
-    var card = buildDom([column,
-                         [card,
+    var card = buildDom([card,
                          [card_image,
                           image,
                           card_title],
                          card_content,
                          [card_action,
                           note_link,
-                          delete_link]]]);
+                          delete_link]]);
    return card
 }
 
