@@ -62,7 +62,7 @@ def scan_note(note, image, **tesseract_opts):
     ''' Scan note using tesseract-ocr. '''
     note.ocr_text = ocr.scan(image)
     note.tags = [
-        Tag(note.uuid, keyword)
+        Tag(None, note.uuid, keyword)
         for keyword in keywords.keywords_of('en_NZ', note.ocr_text)
     ]
 
