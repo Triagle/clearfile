@@ -14,7 +14,8 @@ setup(
         'fuzzywuzzy',
         'rake_nltk',
         'pillow',
-        'pyenchant'
+        'pyenchant',
+        'dataset'
     ],
     entry_points='''
         [console_scripts]

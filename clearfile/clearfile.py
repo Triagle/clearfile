@@ -1,6 +1,6 @@
 import os
 import io
-import sqlite3
+import dataset
 import json
 import uuid
 from PIL import Image, ExifTags
@@ -21,6 +21,7 @@ def setup_environments():
     db_file = os.path.join(clearfile_dir, 'clearfile.db')
     app.config['CLEARFILE_DIR'] = clearfile_dir
     app.config['DB_FILE'] = db_file
+    app.config['DB_URL'] = f'sqlite:///{db_file}'
 
 
 setup_environments()
@@ -78,7 +79,7 @@ def web():
 
 @app.route('/search', methods=['GET'])
 def search():
-    conn = sqlite3.connect(app.config['DB_FILE'])
+    conn = dataset.connect(app.config['DB_URL'])
     with conn:
         search = request.args.get('query', default='')
         if search == '':
@@ -90,7 +91,7 @@ def search():
 
 @app.route('/note/<uuid>')
 def get_note(uuid):
-    conn = sqlite3.connect(app.config['DB_FILE'])
+    conn = dataset.connect(app.config['DB_URL'])
     with conn:
         note = db.note_for_uuid(conn, uuid)
         return json.dumps(note, cls=note.NoteEncoder)
@@ -113,7 +114,7 @@ def handle_upload():
     user_note = note.Note(note_uuid, title)
     note.scan_note(user_note, image=image)
     image.save(path, 'JPEG', quality=80, optimize=True, progressive=True)
-    conn = sqlite3.connect(app.config['DB_FILE'])
+    conn = dataset.connect(app.config['DB_URL'])
     with conn:
         db.add_note(conn, user_note)
     return ok()
@@ -125,7 +126,7 @@ def handle_delete_tag(tag_id):
     except ValueError:
         return make_error('Invalid tag id.')
 
-    conn = sqlite3.connect(app.config['DB_FILE'])
+    conn = dataset.connect(app.config['DB_URL'])
     with conn:
         db.delete_tag(conn, tag_id)
 
@@ -134,7 +135,7 @@ def handle_delete_tag(tag_id):
 
 @app.route('/delete/<uuid>', methods=['GET'])
 def handle_delete(uuid):
-    conn = sqlite3.connect(app.config['DB_FILE'])
+    conn = dataset.connect(app.config['DB_URL'])
     try:
         with conn:
             db.delete_note(conn, uuid)

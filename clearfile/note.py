@@ -1,8 +1,9 @@
-from clearfile import keywords, ocr
+# from clearfile import keywords, ocr
 import json
 import pathlib
 import os
 from collections import namedtuple
+from clearfile import ocr, keywords
 try:
     import Image
 except ImportError:
@@ -14,7 +15,7 @@ HASH_BUF_SIZE = 65536
 # Paper must be within 0.8x and 1.2x the normal ratio.
 # See preprocess.warp_to_page
 
-Tag = namedtuple('Tag', ['id', 'tag'])
+Tag = namedtuple('Tag', ['id', 'uuid', 'tag'])
 
 
 def node_path_for_filepath(path, relativeto):
@@ -60,7 +61,10 @@ class Note(object):
 def scan_note(note, image, **tesseract_opts):
     ''' Scan note using tesseract-ocr. '''
     note.ocr_text = ocr.scan(image)
-    note.tags = keywords.keywords_of('en_NZ', note.ocr_text)
+    note.tags = [
+        Tag(note.uuid, keyword)
+        for keyword in keywords.keywords_of('en_NZ', note.ocr_text)
+    ]
 
 
 class NoteEncoder(json.JSONEncoder):

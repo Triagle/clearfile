@@ -1,71 +1,62 @@
 ''' Manage notes in a directory. '''
-import re
 import sqlite3
 from fuzzywuzzy import process
 
 from clearfile import note
 
 
-def note_for_uuid(conn, uuid):
+def note_for_uuid(db, uuid):
     ''' For a given uuid, return a note class representing it. '''
-    cursor = conn.cursor()
-    cursor.execute('select uuid, name, ocr_text from notes where notes.uuid = ?', (uuid,))
-    result = cursor.fetchone()
-    if result is None:
-        return None
-    result = tuple(result)
-    tags = get_tags_for_note(cursor, uuid)
-    return note.Note(*result, tags)
+    dict_note = db['notes'].find(uuid=uuid)
+    tags = get_tags_for_note(db, uuid)
+    return note.Note(**dict_note, tags=tags)
 
 
-def get_tags_for_note(cursor, uuid):
-    cursor.execute('select tag_id, tag from tags where tags.note_uuid = ?', (uuid,))
-    sqlite_rows = cursor.fetchall()
-    tags = []
-    for row in sqlite_rows:
-        tags.append(note.Tag(*row))
-    return tags
+def get_tags_for_note(db, uuid):
+    ''' Return the tags for a note of a given uuid. '''
+    return [
+        note.Tag(**tag)
+        for tag in db['tags'].find(uuid=uuid)
+    ]
 
 
-def get_notes(conn):
-    cursor = conn.cursor()
-    results = cursor.execute('select uuid, name, ocr_text from notes')
+def get_notes(db):
     notes = []
-    for result in results.fetchall():
-        tags = get_tags_for_note(cursor, result[0])
-        notes.append(note.Note(*result, tags=tags))
+    for result in db['notes'].all():
+        tags = get_tags_for_note(db, result['uuid'])
+        notes.append(note.Note(**result, tags=tags))
+
     return notes
 
 
 def note_search(conn, search):
     notes = get_notes(conn)
     text_to_note_map = {note.ocr_text: note for note in notes}
-    processed_text = process.extractBests(search, list(text_to_note_map), limit=10, score_cutoff=50)
+    processed_text = process.extractBests(search, list(text_to_note_map),
+                                          limit=10, score_cutoff=50)
     return [text_to_note_map[text] for text, _ in processed_text]
 
 
-def add_note(conn, user_note):
-    cursor = conn.cursor()
-    cursor.execute('insert into notes (uuid, name, ocr_text) values (?, ?, ?)',
-                   (user_note.uuid, user_note.name, user_note.ocr_text))
+def add_note(db, user_note):
+    db['notes'].insert(dict(
+        uuid=user_note.uuid,
+        name=user_note.name,
+        ocr_text=user_note.ocr_text
+    ))
 
-    for tag in user_note.tags:
-        cursor.execute('insert into tags (note_uuid, tag) values (?, ?)', (user_note.uuid, tag))
-
-
-def delete_note(conn, uuid):
-    cursor = conn.cursor()
-    if note_for_uuid(conn, uuid) is None:
-        raise KeyError(f'Invalid uuid: {uuid}')
-
-    cursor.execute("PRAGMA foreign_keys=ON")
-    cursor.execute('delete from notes where uuid = ?', (uuid,))
+    db['tags'].insert_many([
+        {'uuid': tag.uuid, 'tag': tag.tag}
+        for tag in user_note.tags
+    ])
 
 
-def delete_tag(conn, tag_id):
-    cursor = conn.cursor()
-    cursor.execute('delete from tags where tag_id = ?', (tag_id,))
+def delete_note(db, uuid):
+    _ = db.query('PRAGMA foreign_keys=ON')
+    db['notes'].delete(uuid=uuid)
 
+
+def delete_tag(db, tag_id):
+    db['tags'].delete(id=tag_id)
 
 
 def create_db_if_not_exists(schema_file, db_file):
