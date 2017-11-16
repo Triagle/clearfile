@@ -1,4 +1,4 @@
-from clearfile import keywords
+from clearfile import keywords, ocr
 import json
 import pathlib
 import os
@@ -8,7 +8,6 @@ try:
 except ImportError:
     from PIL import Image
 import tempfile
-import pytesseract
 
 # Buffer size for reading in image files to hash
 HASH_BUF_SIZE = 65536
@@ -60,11 +59,8 @@ class Note(object):
 
 def scan_note(note, image, **tesseract_opts):
     ''' Scan note using tesseract-ocr. '''
-    with tempfile.NamedTemporaryFile(suffix='.jpg') as fp:
-        image.save(fp.name)
-        os.system(f'textcleaner -g -e none -f 10 -o 5 {fp.name} {fp.name}')
-        note.ocr_text = pytesseract.image_to_string(Image.open(fp.name), **tesseract_opts)
-        note.tags = keywords.keywords_of('en_NZ', note.ocr_text)
+    note.ocr_text = ocr.scan(image)
+    note.tags = keywords.keywords_of('en_NZ', note.ocr_text)
 
 
 class NoteEncoder(json.JSONEncoder):
