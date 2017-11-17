@@ -9,7 +9,6 @@ function addResults(query) {
         }
         search_query = query.replace(rx, "").trim();
     }
-    console.log(`"${search_query}"`);
     $.get('/search?query=' + search_query + opts_string, function (text, status) {
         $(".search-result-container").html(text);
         $('.materialboxed').materialbox();
