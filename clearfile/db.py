@@ -34,12 +34,25 @@ def get_notes(db):
     return notes
 
 
-def note_search(conn, search):
+def note_search(conn, search, notebook=None):
     notes = get_notes(conn)
     text_to_note_map = {note.ocr_text: note for note in notes}
-    processed_text = process.extractBests(search, list(text_to_note_map),
-                                          limit=10, score_cutoff=50)
-    return [text_to_note_map[text] for text, _ in processed_text]
+    if len(search) > 0:
+        processed_text = [text for text, _ in
+                          process.extractBests(search, list(text_to_note_map),
+                                               limit=10, score_cutoff=50)]
+    filtered_notes = []
+    notebook_filter = notebook is not None
+    if notebook_filter:
+        notebook = notebook.lower()
+    for text in processed_text:
+        note = text_to_note_map[text]
+        note_name = note.notebook.name.lower()
+        notebook_matches = note.notebook and note_name == notebook
+        if not notebook_filter and notebook_matches:
+            filtered_notes.append(text)
+
+    return filtered_notes
 
 
 def add_note(db, user_note):

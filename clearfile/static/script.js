@@ -1,5 +1,16 @@
 function addResults(query) {
-    $.get('/search?query=' + query, function (text, status) {
+    let rx = /(\w+):"([^"]+)"/g;
+    let opts = rx.exec(query);
+    var search_query = query;
+    var opts_string = "";
+    if (opts != null) {
+        for (var i = 1; i < opts.length; i += 2) {
+            opts_string += `&${opts[i]}=${opts[i + 1]}`;
+        }
+        search_query = query.replace(rx, "").trim();
+    }
+    console.log(`"${search_query}"`);
+    $.get('/search?query=' + search_query + opts_string, function (text, status) {
         $(".search-result-container").html(text);
         $('.materialboxed').materialbox();
         $('.dropdown-button').dropdown({

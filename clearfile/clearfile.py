@@ -81,10 +81,8 @@ def search():
     conn = dataset.connect(app.config['DB_URL'])
     with conn:
         search = request.args.get('query', default='')
-        if search == '':
-            notes = db.get_notes(conn)
-        else:
-            notes = db.note_search(conn, search)
+        notes = db.note_search(conn, search,
+                                notebook=request.args.get('notebook', None))
         notebooks = db.get_notebooks(conn)
         return render_template('search_result.html', notes=notes, notebooks=notebooks)
 
