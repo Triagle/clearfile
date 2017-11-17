@@ -153,6 +153,7 @@ def add_notebook():
     notebook = request.args.get('name')
     with conn:
         db.add_notebook(conn, notebook)
+    return ok()
 
 
 @app.route('/update/<uuid>', methods=['GET'])
