@@ -44,19 +44,14 @@ def note_search(conn, search, notebook=None):
     else:
         processed_text = list(text_to_note_map)
     filtered_notes = []
-    notebook_filter = notebook is not None
-    if notebook_filter:
-        notebook = notebook.lower()
+
     for text in processed_text:
         note = text_to_note_map[text]
-        if note.notebook:
-            note_name = note.notebook.name.lower()
-            notebook_matches = note.notebook and note_name == notebook
-            if not notebook_filter and notebook_matches:
-                filtered_notes.append(note)
-            elif not notebook_filter:
-                filtered_notes.append(note)
-        else:
+        if notebook is None:
+            filtered_notes.append(note)
+        elif note.notebook is None:
+            filtered_notes.append(note)
+        elif note.notebook.name.lower() == notebook.lower():
             filtered_notes.append(note)
 
     return filtered_notes
