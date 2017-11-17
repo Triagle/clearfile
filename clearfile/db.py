@@ -53,7 +53,9 @@ def note_search(conn, search, notebook=None):
             note_name = note.notebook.name.lower()
             notebook_matches = note.notebook and note_name == notebook
             if not notebook_filter and notebook_matches:
-                filtered_notes.append(text)
+                filtered_notes.append(note)
+        else:
+            filtered_notes.append(note)
 
     return filtered_notes
 
