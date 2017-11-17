@@ -1,0 +1,45 @@
+{% if notes|length == 0 %}
+<div class="col s12 m12 l12" id="no-notes-found">
+    <div class="full-height valign-wrapper">
+        <h2 class="center-align full-width grey-text text-lighten-1">No Notes.</h1>
+    </div>
+</div>
+{% endif %}
+<div class="col s12 cards-container" id="clearfile-search-results">
+    {% for note in notes %}
+    <div class="card">
+        <div class="card-image">
+            <img class="materialboxed" src="/uploads/{{note.uuid}}"/>
+            <span class="card-title">{{note.name}}</span>
+        </div>
+        <div class="card-content">
+            {% for tag in note.tags %}
+            <div class="chip">
+                {{tag.tag}}
+                <i class="close material-icons kill-tag" data-tag-id="{{tag.id}}">close</i>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="card-action">
+            <a href="/uploads/{{note.uuid}}">View</a>
+            <a class="delete-note" href="/delete/note/{{note.uuid}}">Delete</a>
+            <a class='dropdown-button' href='#!' data-activates='dropdown-{{note.uuid}}'>{{ note.notebook.name if note.notebook else 'None'}}</a>
+            <ul id='dropdown-{{note.uuid}}' class='dropdown-content'>
+                {% for nb in notebooks %}
+                {% if nb == note.notebook %}
+                <li><a class="update-notebook" href="/update/{{note.uuid}}?notebook=%00"><i class="material-icons">book</i>{{note.notebook.name}} (current)</a></li>
+                {% else %}
+                <li>
+                    <a class="update-notebook" href="/update/{{note.uuid}}?notebook={{nb.id}}"><i class="material-icons">book</i>{{nb.name}}</a>
+                </li>
+                {% endif %}
+                {% endfor %}
+                {% if notebooks|length %}
+                <li class="divider"></li>
+                {% endif %}
+                <li><a class="add-notebook-button"><i class="material-icons">add</i> New Notebook</a></li>
+            </ul>
+        </div>
+    </div>
+    {% endfor %}
+</div>
