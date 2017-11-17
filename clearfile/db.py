@@ -35,10 +35,11 @@ def get_notes(db):
 
 def note_search(conn, search, notebook=None):
     notes = get_notes(conn)
+
     if len(search) > 0:
         processed_notes = [text for text, _ in
                            process.extractBests(search, notes,
-                                                processor=lambda n: n.ocr_text,
+                                                processor=str,
                                                 limit=10, score_cutoff=50)]
     else:
         processed_notes = notes
