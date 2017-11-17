@@ -25,7 +25,6 @@ def get_tags_for_note(db, uuid):
 def get_notes(db):
     notes = []
     for result in db['notes'].all():
-
         if result.get('notebook', None):
             result['notebook'] = notebook_for_id(db, result['notebook'])
         tags = get_tags_for_note(db, result['uuid'])
@@ -36,23 +35,24 @@ def get_notes(db):
 
 def note_search(conn, search, notebook=None):
     notes = get_notes(conn)
-    text_to_note_map = {note.ocr_text: note for note in notes}
     if len(search) > 0:
-        processed_text = [text for text, _ in
-                          process.extractBests(search, list(text_to_note_map),
-                                               limit=10, score_cutoff=50)]
+        processed_notes = [text for text, _ in
+                           process.extractBests(search, notes,
+                                                processor=lambda n: n.ocr_text,
+                                                limit=10, score_cutoff=50)]
     else:
-        processed_text = list(text_to_note_map)
+        processed_notes = notes
     filtered_notes = []
 
-    for text in processed_text:
-        note = text_to_note_map[text]
+    for n in processed_notes:
         if notebook is None:
-            filtered_notes.append(note)
-        elif note.notebook is None:
-            filtered_notes.append(note)
-        elif note.notebook.name.lower() == notebook.lower():
-            filtered_notes.append(note)
+            filtered_notes.append(n)
+        elif n.notebook is None:
+            # User specified a notebook but this note has one, continue
+            continue
+        elif n.notebook.name.lower() == notebook.lower():
+            # User specified a notebook and it matches the note we're looking at
+            filtered_notes.append(n)
 
     return filtered_notes
 
