@@ -41,6 +41,8 @@ def note_search(conn, search, notebook=None):
         processed_text = [text for text, _ in
                           process.extractBests(search, list(text_to_note_map),
                                                limit=10, score_cutoff=50)]
+    else:
+        processed_text = list(text_to_note_map)
     filtered_notes = []
     notebook_filter = notebook is not None
     if notebook_filter:
