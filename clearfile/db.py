@@ -72,7 +72,7 @@ def add_note(db, user_note):
 
 def update_note(db, data):
     old_note = note_for_uuid(db, data['uuid'])
-    if 'notebook' in data and data['notebook'] is None and old_note.notebook:
+    if 'notebook' in data and old_note.notebook and data['notebook'] != old_note.notebook:
         notes_left = db['notes'].find(notebook=old_note.notebook.id)
         if len(list(notes_left)) == 1:
             db['notebooks'].delete(id=old_note.notebook.id)
