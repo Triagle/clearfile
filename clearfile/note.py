@@ -1,14 +1,12 @@
 # from clearfile import keywords, ocr
 import json
 import pathlib
-import os
 from collections import namedtuple
 from clearfile import ocr, keywords
 try:
     import Image
 except ImportError:
     from PIL import Image
-import tempfile
 
 # Buffer size for reading in image files to hash
 HASH_BUF_SIZE = 65536
@@ -16,6 +14,7 @@ HASH_BUF_SIZE = 65536
 # See preprocess.warp_to_page
 
 Tag = namedtuple('Tag', ['id', 'uuid', 'tag'])
+Notebook = namedtuple('Notebook', ['id', 'name'])
 
 
 def node_path_for_filepath(path, relativeto):
@@ -40,11 +39,12 @@ class Note(object):
     ''' Represents a single note (image). Holds information like ocr
     recovered text, the fullpath, tags, etc. '''
 
-    def __init__(self, uuid, name, ocr_text=None, tags=None):
+    def __init__(self, uuid, name, ocr_text=None, tags=None, notebook=None):
         ''' Initialize note object. '''
         self.uuid = uuid
         self.name = name
         self.tags = tags or []
+        self.notebook = notebook
         self.ocr_text = ocr_text or ''
 
     def __repr__(self):

@@ -64,7 +64,6 @@ def restore_rotation(img):
             orientation = v
             break
 
-    print(orientation)
     if orientation > 1:
         for method in FLIP_METHOD[orientation]:
             img = img.transpose(method)
@@ -86,7 +85,8 @@ def search():
             notes = db.get_notes(conn)
         else:
             notes = db.note_search(conn, search)
-        return json.dumps(notes, cls=note.NoteEncoder)
+        notebooks = db.get_notebooks(conn)
+        return render_template('search_result.html', notes=notes, notebooks=notebooks)
 
 
 @app.route('/note/<uuid>')
@@ -119,7 +119,8 @@ def handle_upload():
         db.add_note(conn, user_note)
     return ok()
 
-@app.route('/delete-tag/<tag_id>', methods=['GET'])
+
+@app.route('/delete/tag/<tag_id>', methods=['GET'])
 def handle_delete_tag(tag_id):
     try:
         tag_id = int(tag_id)
@@ -133,7 +134,7 @@ def handle_delete_tag(tag_id):
     return ok()
 
 
-@app.route('/delete/<uuid>', methods=['GET'])
+@app.route('/delete/note/<uuid>', methods=['GET'])
 def handle_delete(uuid):
     conn = dataset.connect(app.config['DB_URL'])
     try:
@@ -146,3 +147,25 @@ def handle_delete(uuid):
         return make_error(e.message)
     except FileNotFoundError as f:
         return make_error('Note no longer exists.')
+
+
+@app.route('/add/notebook', methods=['GET'])
+def add_notebook():
+    conn = dataset.connect(app.config['DB_URL'])
+    notebook = request.args.get('name')
+    with conn:
+        db.add_notebook(conn, notebook)
+
+
+@app.route('/update/<uuid>', methods=['GET'])
+def update(uuid):
+    conn = dataset.connect(app.config['DB_URL'])
+    data = request.args.to_dict()
+    data['uuid'] = uuid
+    data = {
+        k: None if v == "\x00" else v
+        for k, v in data.items()
+    }
+    with conn:
+        db.update_note(conn, data)
+    return ok()

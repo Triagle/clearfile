@@ -1,95 +1,17 @@
-function buildDom(nodes) {
-    let root = nodes[0];
-    for (let index = 1; index < nodes.length; ++index) {
-        let child = nodes[index];
-        if (child.constructor === Array) {
-            child = buildDom(child);
-        }
-        root.appendChild(child);
-    }
-    return root;
-}
-
-function emptyNotes() {
-    var html = `<div class="col s12 m12 l12" id="no-notes-found">
-                    <div class="full-height valign-wrapper">
-                        <h2 class="center-align full-width grey-text text-lighten-1">No Notes.</h1>
-                    </div>
-                </div>
-                <div class="col s12 cards-container" id="clearfile-search-results">
-                </div>`;
-    var noteResults = $(".search-result-container");
-    noteResults.html(html)
-}
-
-function buildNoteCard(uuid, title, image_link, tags, link) {
-    var column = document.createElement("div");
-    column.classList.add("col");
-    column.classList.add("s12");
-    column.classList.add("m6");
-    column.classList.add("l6");
-    var card = document.createElement("div");
-    card.classList.add("card");
-    var card_image = document.createElement("div");
-    card_image.classList.add("card-image");
-    var image = document.createElement("img");
-    image.classList.add("materialboxed");
-    image.src = image_link;
-    var card_title = document.createElement("span");
-    card_title.classList.add("card-title");
-    card_title.appendChild(document.createTextNode(title));
-    card_content = document.createElement("div");
-    card_content.classList.add("card-content");
-    for (let tag of tags) {
-        var chip = document.createElement("div");
-        chip.classList.add("chip");
-        chip.innerText = tag.tag;
-        var close = document.createElement("i");
-        close.classList.add("close");
-        close.classList.add("material-icons");
-        close.classList.add("kill-tag");
-        close.setAttribute("data-tag-id", tag.id);
-        close.innerText = "close";
-        chip.appendChild(close);
-        card_content.appendChild(chip);
-    }
-    var card_action = document.createElement("div");
-    card_action.classList.add("card-action");
-    var note_link = document.createElement("a");
-    note_link.href = link;
-    note_link.innerHTML = "View";
-    var delete_link = document.createElement("a");
-    delete_link.classList.add("delete-note");
-    delete_link.href = "/delete/" + uuid;
-    delete_link.innerHTML = "Delete";
-    var card = buildDom([card,
-                         [card_image,
-                          image,
-                          card_title],
-                         card_content,
-                         [card_action,
-                          note_link,
-                          delete_link]]);
-   return card
-}
-
 function addResults(query) {
-
     $.get('/search?query=' + query, function (text, status) {
-        let json = JSON.parse(text);
-        if (json.length === 0) {
-            emptyNotes();
-        } else {
-            $("#no-notes-found").remove();
-            $("#clearfile-search-results").empty();
-            var clearfile_search_results = document.getElementById("clearfile-search-results");
-            for (let card of json) {
-                let link = '/uploads/' + card.uuid;
-                let dom_card = buildNoteCard(card.uuid, card.name, link, card.tags, link);
-                clearfile_search_results.appendChild(dom_card);
-            }
-        }
+        $(".search-result-container").html(text);
         $('.materialboxed').materialbox();
+        $('.dropdown-button').dropdown({
+            inDuration: 300,
+            outDuration: 225,
+            constrainWidth: false, // Does not change width of dropdown to that of the activator
+            gutter: 0, // Spacing from edge
+            belowOrigin: false, // Displays dropdown below the button
+            alignment: 'left', // Displays dropdown with edge aligned to the left of button
+            stopPropagation: false // Stops event propagation
+        });
+
     });
 }
 
@@ -99,6 +21,7 @@ $(document).ready(function() {
         $('#upload').modal();
         $('#upload').modal('open');
     });
+
     $('#upload-file').click(function () {
         $('#upload-form').submit();
     })
@@ -122,6 +45,23 @@ $(document).ready(function() {
             addResults("");
         });
     });
+    $('.search-result-container').on('click', '.update-notebook', function (event) {
+        event.preventDefault();
+        $.get($(this).attr("href"), function (text, status) {
+            addResults("");
+        });
+    });
+
+    $('.search-result-container').on('click', '.add-notebook-button', function (event){
+        $('#add-notebook').modal();
+        $('#add-notebook').modal('open');
+    });
+
+    $('#notebook-add-button').on('click', function() {
+        $.get("/add/notebook?" + $('#notebook-form').serialize(), function (data, status) {
+            addResults("");
+        });
+    });
     $('#form-upload-button').on('click', function() {
         $.ajax({
             // Your server script to process the upload
@@ -142,11 +82,12 @@ $(document).ready(function() {
     });
     $('.search-result-container').on('click', '.kill-tag', function(e){
         let dataId = $(this).attr("data-tag-id");
-        $.get("/delete-tag/" + dataId, function (data) {
+        $.get("/delete/tag/" + dataId, function (data) {
             Materialize.toast("Tag Deleted.", 1000);
         }).fail(function() {
             Materialize.toast("Error deleting tag.", 1000);
         });
     });
+
     addResults("");
 });
