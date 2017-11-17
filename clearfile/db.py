@@ -49,10 +49,11 @@ def note_search(conn, search, notebook=None):
         notebook = notebook.lower()
     for text in processed_text:
         note = text_to_note_map[text]
-        note_name = note.notebook.name.lower()
-        notebook_matches = note.notebook and note_name == notebook
-        if not notebook_filter and notebook_matches:
-            filtered_notes.append(text)
+        if note.notebook:
+            note_name = note.notebook.name.lower()
+            notebook_matches = note.notebook and note_name == notebook
+            if not notebook_filter and notebook_matches:
+                filtered_notes.append(text)
 
     return filtered_notes
 
