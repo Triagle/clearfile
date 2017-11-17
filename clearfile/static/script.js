@@ -43,7 +43,9 @@ $(document).ready(function() {
         });
         addResults($("#clearfile-search-input").val());
     });
+
     $("#clearfile-search-input").val("");
+
     $('.search-result-container').on('click', '.delete-note', function (event) {
         event.preventDefault();
         $.get($(this).attr("href"), function (text, status) {
@@ -56,6 +58,7 @@ $(document).ready(function() {
             addResults("");
         });
     });
+
     $('.search-result-container').on('click', '.update-notebook', function (event) {
         event.preventDefault();
         $.get($(this).attr("href"), function (text, status) {
@@ -68,20 +71,26 @@ $(document).ready(function() {
         $('#add-notebook').modal('open');
     });
 
-    $('#notebook-add-button').on('click', function() {
+    $("#notebook-form").submit(function (event) {
+        event.preventDefault();
         $.get("/add/notebook?" + $('#notebook-form').serialize(), function (data, status) {
             addResults("");
+            $('#add-notebook').modal('close');
         });
     });
-    $('#form-upload-button').on('click', function() {
+
+    $('#notebook-add-button').on('click', function() {
+        $('#notebook-form').submit();
+    });
+
+    $('#upload-form').submit(function (event) {
+        event.preventDefault();
         $.ajax({
             // Your server script to process the upload
             url: '/upload',
             type: 'POST',
-
             // Form data
             data: new FormData($('#upload-form')[0]),
-
             // Tell jQuery not to process data or worry about content-type
             // You *must* include these options!
             cache: false,
@@ -90,7 +99,12 @@ $(document).ready(function() {
         }).done(function (data) {
             addResults("");
         });
+    })
+
+    $('#form-upload-button').on('click', function() {
+        $('#upload-form').submit();
     });
+
     $('.search-result-container').on('click', '.kill-tag', function(e){
         let dataId = $(this).attr("data-tag-id");
         $.get("/delete/tag/" + dataId, function (data) {
