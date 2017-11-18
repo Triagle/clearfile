@@ -32,6 +32,7 @@ $(document).ready(function() {
         $('#upload').modal('open');
     });
 
+
     $('#upload-file').click(function () {
         $('#upload-form').submit();
     })
@@ -60,8 +61,67 @@ $(document).ready(function() {
 
     $('.search-result-container').on('click', '.update-notebook', function (event) {
         event.preventDefault();
-        $.get($(this).attr("href"), function (text, status) {
-            addResults("");
+        let noteUUID = $(this).attr('data-note-uuid');
+        var notebook = null;
+        if (!$(this).hasClass("delete-notebook")) {
+            notebook = $(this).attr('data-notebook');
+        }
+        var data = {
+            uuid: noteUUID,
+            notebook: notebook
+        };
+        $.ajax({
+            type: 'POST',
+            url: '/update/note',
+            data: JSON.stringify(data),
+            success: function (text, status) {
+                addResults("");
+            },
+            dataType: 'json',
+            contentType: 'application/json'
+        });
+    });
+
+    $('.search-result-container').on('click', '.update-note', function (event) {
+        let uuid = $(this).attr('data-note-uuid');
+        $.get('/note/' + uuid, function (text, status) {
+            let json = JSON.parse(text);
+            let tags = json['tags'];
+            let title = json['name'];
+            $('.chips').material_chip();
+            $('#edit-chip').material_chip({
+                data: tags.map(note_tag => ({tag: note_tag['tag']}))
+            });
+            $('#edit-note').modal();
+            $('#edit-note').modal('open');
+            $('#update-form input[name=title]').val(title);
+            $('#update-form input[name=title]').attr('data-note-uuid', uuid);
+        })
+    });
+
+    $('#modal-update-button').on('click', function (event) {
+        $('#update-form').submit();
+    })
+
+    $('#update-form').submit(function (event) {
+        event.preventDefault();
+        var tags = $('#edit-chip').material_chip('data').map(c => c.tag);
+        var title_form = $('#update-form input[name=title]');
+        var title = title_form.val();
+        var data = {
+            uuid: title_form.attr('data-note-uuid'),
+            tags: tags,
+            name: title
+        };
+        $.ajax({
+                type: 'POST',
+                url: '/update/note',
+                data: JSON.stringify(data),
+                success: function (text, status) {
+                    addResults("");
+                },
+                dataType: 'json',
+                contentType: 'application/json'
         });
     });
 

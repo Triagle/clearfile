@@ -91,8 +91,8 @@ def search():
 def get_note(uuid):
     conn = dataset.connect(app.config['DB_URL'])
     with conn:
-        note = db.note_for_uuid(conn, uuid)
-        return json.dumps(note, cls=note.NoteEncoder)
+        nt = db.note_for_uuid(conn, uuid)
+        return json.dumps(nt, cls=note.NoteEncoder)
 
 @app.route('/uploads/<uuid>')
 def uploads(uuid):
@@ -156,15 +156,12 @@ def add_notebook():
     return ok()
 
 
-@app.route('/update/<uuid>', methods=['GET'])
-def update(uuid):
+@app.route('/update/note', methods=['POST'])
+def update():
+    data = request.get_json()
+    if not data:
+        return make_error('Data cannot be none.')
     conn = dataset.connect(app.config['DB_URL'])
-    data = request.args.to_dict()
-    data['uuid'] = uuid
-    data = {
-        k: None if v == "\x00" else v
-        for k, v in data.items()
-    }
     with conn:
         db.update_note(conn, data)
     return ok()

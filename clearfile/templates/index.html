@@ -57,25 +57,39 @@
                         </div>
 
                         <div class="modal-footer">
-                            <a href="#!" id="form-upload-button" class="modal-action modal-close waves-effect waves-red btn accent-bg-colour">Upload</a>
+                            <a href="#!" id="form-upload-button" class="modal-action modal-close waves-effect waves-light btn accent-bg-colour">Upload</a>
                         </div>
                     </form>
                 </div>
             </div>
             <div id="add-notebook" class="modal">
                 <div class="modal-content">
-                    <h4>Add Notebook</h4>
                     <form id="notebook-form">
                         <div class="row">
+                            <h4>Add Notebook</h4>
                             <div class="input-field">
                                 <input name="name" type="text" value=""/>
                                 <label for="name">Name</label>
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <a href="#!" id="notebook-add-button" class="modal-action modal-close waves-effect waves-red accent-bg-colour btn">Add</a>
+                            <a href="#!" id="notebook-add-button" class="modal-action modal-close waves-effect waves-light accent-bg-colour btn">Add</a>
                         </div>
                     </form>
+                </div>
+            </div>
+            <div id="edit-note" class="modal">
+                <div class="modal-content">
+                    <form id="update-form">
+                        <div class="row">
+                            <input name="title" type="text" value=""/>
+                            <label for="title">Title</label>
+                            <div id="edit-chip" class="chips chips-initial"></div>
+                        </div>
+                    </form>
+                    <div class="modal-footer">
+                        <a href="#!" id="modal-update-button" class="modal-action modal-close waves-effect waves-light accent-bg-colour btn">Update</a>
+                    </div>
                 </div>
             </div>
         </div>

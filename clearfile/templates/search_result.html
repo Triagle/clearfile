@@ -11,6 +11,7 @@
         <div class="card-image">
             <img class="materialboxed" src="/uploads/{{note.uuid}}"/>
             <span class="card-title">{{note.name}}</span>
+            <a class="btn-floating halfway-fab waves-effect waves-light accent-bg-colour update-note" data-note-uuid="{{note.uuid}}"><i class="material-icons">edit</i></a>
         </div>
         <div class="card-content">
             {% for tag in note.tags %}
@@ -27,10 +28,10 @@
             <ul id='dropdown-{{note.uuid}}' class='dropdown-content'>
                 {% for nb in notebooks %}
                 {% if nb == note.notebook %}
-                <li><a class="update-notebook accent-colour" href="/update/{{note.uuid}}?notebook=%00"><i class="material-icons">book</i>{{note.notebook.name}} (current)</a></li>
+                <li><a class="update-notebook accent-colour" href="/update/note" data-note-uuid="{{note.uuid}}"><i class="material-icons">book</i>{{note.notebook.name}} (current)</a></li>
                 {% else %}
                 <li>
-                    <a class="update-notebook accent-colour" href="/update/{{note.uuid}}?notebook={{nb.id}}"><i class="material-icons">book</i>{{nb.name}}</a>
+                    <a class="update-notebook accent-colour" href="/update/note" data-note-uuid="{{note.uuid}}" data-notebook="{{nb.id}}"><i class="material-icons">book</i>{{nb.name}}</a>
                 </li>
                 {% endif %}
                 {% endfor %}

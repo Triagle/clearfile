@@ -58,21 +58,39 @@ def note_search(conn, search, notebook=None):
     return filtered_notes
 
 
+def add_tags(db, *tags):
+    db['tags'].insert_many([
+        {'uuid': tag.uuid, 'tag': tag.tag}
+        for tag in tags
+    ])
+
+
 def add_note(db, user_note):
     db['notes'].insert(dict(
         uuid=user_note.uuid,
         name=user_note.name,
         ocr_text=user_note.ocr_text
     ))
+    add_tags(db, *user_note.tags)
 
-    db['tags'].insert_many([
-        {'uuid': tag.uuid, 'tag': tag.tag}
-        for tag in user_note.tags
-    ])
+
+def update_tags(db, nt, new_tags):
+    old_tags = {tag.tag for tag in nt.tags}
+    new_tags = set(new_tags)
+
+    for tag in new_tags ^ old_tags:
+        if tag in new_tags:
+            new_tag = note.Tag(None, nt.uuid, tag)
+            add_tags(db, new_tag)
+        elif tag in old_tags:
+            db['tags'].delete(tag=tag, uuid=nt.uuid)
 
 
 def update_note(db, data):
     old_note = note_for_uuid(db, data['uuid'])
+    if 'tags' in data:
+        update_tags(db, old_note, data['tags'])
+        data.pop('tags')
     if 'notebook' in data and old_note.notebook and data['notebook'] != old_note.notebook:
         notes_left = db['notes'].find(notebook=old_note.notebook.id)
         if len(list(notes_left)) == 1:
