@@ -21,23 +21,23 @@
             {% endfor %}
         </div>
         <div class="card-action">
-            <a href="/uploads/{{note.uuid}}">View</a>
-            <a class="delete-note" href="/delete/note/{{note.uuid}}">Delete</a>
-            <a class='dropdown-button' href='#!' data-activates='dropdown-{{note.uuid}}'>{{ note.notebook.name if note.notebook else 'None'}}</a>
+            <a class="accent-colour" href="/uploads/{{note.uuid}}">View</a>
+            <a class="delete-note accent-colour" href="/delete/note/{{note.uuid}}">Delete</a>
+            <a class='dropdown-button accent-colour' href='#!' data-activates='dropdown-{{note.uuid}}'>{{ note.notebook.name if note.notebook else 'None'}}</a>
             <ul id='dropdown-{{note.uuid}}' class='dropdown-content'>
                 {% for nb in notebooks %}
                 {% if nb == note.notebook %}
-                <li><a class="update-notebook" href="/update/{{note.uuid}}?notebook=%00"><i class="material-icons">book</i>{{note.notebook.name}} (current)</a></li>
+                <li><a class="update-notebook accent-colour" href="/update/{{note.uuid}}?notebook=%00"><i class="material-icons">book</i>{{note.notebook.name}} (current)</a></li>
                 {% else %}
                 <li>
-                    <a class="update-notebook" href="/update/{{note.uuid}}?notebook={{nb.id}}"><i class="material-icons">book</i>{{nb.name}}</a>
+                    <a class="update-notebook accent-colour" href="/update/{{note.uuid}}?notebook={{nb.id}}"><i class="material-icons">book</i>{{nb.name}}</a>
                 </li>
                 {% endif %}
                 {% endfor %}
                 {% if notebooks|length %}
                 <li class="divider"></li>
                 {% endif %}
-                <li><a class="add-notebook-button"><i class="material-icons">add</i> New Notebook</a></li>
+                <li><a class="add-notebook-button accent-colour"><i class="material-icons">add</i> New Notebook</a></li>
             </ul>
         </div>
     </div>
