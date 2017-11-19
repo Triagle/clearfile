@@ -8,6 +8,8 @@ from clearfile import note
 def note_for_uuid(db, uuid):
     ''' For a given uuid, return a note class representing it. '''
     dict_note = db['notes'].find_one(uuid=uuid)
+    if dict_note is None:
+        raise KeyError('Invalid UUID for note.')
     if dict_note['notebook']:
         dict_note['notebook'] = notebook_for_id(db, dict_note['notebook'])
     tags = get_tags_for_note(db, uuid)

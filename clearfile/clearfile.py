@@ -5,7 +5,7 @@ import json
 import uuid
 from PIL import Image, ExifTags
 
-from flask import Flask, render_template, request, send_from_directory
+from flask import Flask, render_template, request, send_from_directory, jsonify
 from werkzeug.utils import secure_filename
 
 from clearfile import db, note
@@ -25,24 +25,36 @@ def setup_environments():
 
 
 setup_environments()
-db.create_db_if_not_exists(os.path.join(app.root_path, 'clearfile.sql'), app.config['DB_FILE'])
+db.create_db_if_not_exists(os.path.join(app.root_path, 'clearfile.sql'),
+                           app.config['DB_FILE'])
 
 
-def make_error(message):
-    return json.dumps({
-        'status': 'error',
-        'message': message
-    })
+class APIError(Exception):
+    def __init__(self, message, status_code=400):
+        super().__init__(self)
+        self.message = message or ''
+        self.status_code = status_code
+
+    def to_dict(self):
+        return {
+            'status': 'error',
+            'message': self.message,
+        }
+
+
+@app.errorhandler(APIError)
+def handle_api_error(error):
+    response = jsonify(error.to_dict())
+    response.status_code = error.status_code
+    return response
 
 
 def ok(message=None):
     return json.dumps({
         'status': 'ok',
         'message':  message
-    })
+        })
 
-
-ORENTATION_EXIF_TAG = 51041
 
 FLIP_METHOD = {
     2: [Image.FLIP_LEFT_RIGHT],
@@ -78,29 +90,40 @@ def web():
 
 @app.route('/search', methods=['GET'])
 def search():
+    if 'query' not in request.args:
+        raise APIError('Client must supply query in order to search.')
     conn = dataset.connect(app.config['DB_URL'])
     with conn:
         search = request.args.get('query', default='')
         notes = db.note_search(conn, search,
-                                notebook=request.args.get('notebook', None))
+                               notebook=request.args.get('notebook', None))
         notebooks = db.get_notebooks(conn)
-        return render_template('search_result.html', notes=notes, notebooks=notebooks)
+        return render_template('search_result.html',
+                               notes=notes,
+                               notebooks=notebooks)
 
 
-@app.route('/note/<uuid>')
+@app.route('/note/<uuid>', methods=['GET'])
 def get_note(uuid):
     conn = dataset.connect(app.config['DB_URL'])
     with conn:
-        nt = db.note_for_uuid(conn, uuid)
+        try:
+            nt = db.note_for_uuid(conn, uuid)
+        except KeyError as e:
+            raise APIError(e.args[0])
         return json.dumps(nt, cls=note.NoteEncoder)
 
-@app.route('/uploads/<uuid>')
+
+@app.route('/uploads/<uuid>', methods=['GET'])
 def uploads(uuid):
     uuid = secure_filename(uuid)
     return send_from_directory(app.config['CLEARFILE_DIR'], f'{uuid}.jpg')
 
+
 @app.route('/upload', methods=['POST'])
 def handle_upload():
+    if 'image' not in request.files or 'title' not in request.form:
+        raise APIError('Client must supply both an image and a title field for note uploads.')
     image_handle = request.files['image']
     data = image_handle.read()
     image = Image.open(io.BytesIO(data))
@@ -123,7 +146,7 @@ def handle_delete_tag(tag_id):
     try:
         tag_id = int(tag_id)
     except ValueError:
-        return make_error('Invalid tag id.')
+        raise APIError('Tag must be an integer.')
 
     conn = dataset.connect(app.config['DB_URL'])
     with conn:
@@ -141,16 +164,16 @@ def handle_delete(uuid):
         path = os.path.join(app.config['CLEARFILE_DIR'], f'{uuid}.jpg')
         os.unlink(path)
         return ok()
-    except KeyError as e:
-        return make_error(e.message)
     except FileNotFoundError as f:
-        return make_error('Note no longer exists.')
+        raise APIError('Note no longer exists.')
 
 
 @app.route('/add/notebook', methods=['GET'])
 def add_notebook():
     conn = dataset.connect(app.config['DB_URL'])
     notebook = request.args.get('name')
+    if notebook is None:
+        raise APIError('Client must supply a valid notebook name.')
     with conn:
         db.add_notebook(conn, notebook)
     return ok()
@@ -160,7 +183,9 @@ def add_notebook():
 def update():
     data = request.get_json()
     if not data:
-        return make_error('Data cannot be none.')
+        raise APIError('Please supply valid json data.')
+    elif 'uuid' not in data:
+        raise APIError('Client must supply UUID to server.')
     conn = dataset.connect(app.config['DB_URL'])
     with conn:
         db.update_note(conn, data)
