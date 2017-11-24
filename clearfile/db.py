@@ -1,4 +1,4 @@
-''' Manage notes in a directory. '''
+"""Manage notes in a directory."""
 import sqlite3
 import heapq
 from fuzzywuzzy import fuzz
@@ -7,7 +7,7 @@ from clearfile import note
 
 
 def note_for_uuid(db, uuid):
-    ''' For a given uuid, return a note class representing it. '''
+    """For a given uuid, return a note class representing it."""
     dict_note = db['notes'].find_one(uuid=uuid)
     if dict_note is None:
         raise KeyError('Invalid UUID for note.')
@@ -18,7 +18,7 @@ def note_for_uuid(db, uuid):
 
 
 def get_tags_for_note(db, uuid):
-    ''' Return the tags for a note of a given uuid. '''
+    """Return the tags for a note of a given uuid."""
     return [
         note.Tag(**tag)
         for tag in db['tags'].find(uuid=uuid)
@@ -26,6 +26,7 @@ def get_tags_for_note(db, uuid):
 
 
 def get_notes(db):
+    """Get all notes from the database."""
     notes = []
     for result in db['notes'].all():
         if result.get('notebook', None):
