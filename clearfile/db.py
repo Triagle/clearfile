@@ -1,6 +1,7 @@
 ''' Manage notes in a directory. '''
 import sqlite3
-from fuzzywuzzy import process
+import heapq
+from fuzzywuzzy import fuzz
 
 from clearfile import note
 
@@ -35,14 +36,34 @@ def get_notes(db):
     return notes
 
 
+def rank_note(query, note):
+    """Rank a note's similarity to a query (max of match on title and text)."""
+    match_ocr = fuzz.WRatio(query, note.ocr_text)
+    match_title = fuzz.WRatio(query, note.name)
+    return max(match_ocr, match_title)
+
+
+def closest_matches(query, notes, k=10, lower_bound=None):
+    """Return the k closest matches to the search query with a lower bound."""
+    heap = []
+    for nt in notes:
+        score = -rank_note(query, nt)
+        if abs(score) < lower_bound:
+            continue
+        if len(heap) < k or heap[0][0] < score:
+            if len(heap) > k:
+                heapq.heappop(heap)
+            heapq.heappush(heap, (score, nt))
+
+    return [nt for _, nt in heap]
+
+
 def note_search(conn, search, notebook=None):
+    """Search notes in database based on a query."""
     notes = get_notes(conn)
 
     if len(search) > 0:
-        processed_notes = [text for text, _ in
-                           process.extractBests(search, notes,
-                                                processor=str,
-                                                limit=10, score_cutoff=50)]
+        processed_notes = closest_matches(search, notes, lower_bound=50)
     else:
         processed_notes = notes
     filtered_notes = []
@@ -98,7 +119,6 @@ def update_note(db, data):
         if len(list(notes_left)) == 1:
             db['notebooks'].delete(id=old_note.notebook.id)
     db['notes'].update(data, ['uuid'])
-
 
 
 def remove_note_from_notebook(db, uuid):
