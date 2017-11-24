@@ -25,7 +25,7 @@ function addResults(query) {
     });
 }
 
-$(document).ready(function() {
+ $(document).ready(function() {
     // the "href" attribute of .modal-trigger must specify the modal ID that wants to be triggered
     $('#upload-button').click(function (){
         $('#upload').modal();
@@ -173,5 +173,9 @@ $(document).ready(function() {
         });
     });
 
+    $('.reset-page').on('click', function () {
+        $('#clearfile-search-input').val("");
+        addResults("");
+    });
     addResults("");
 });
