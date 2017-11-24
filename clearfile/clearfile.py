@@ -15,9 +15,7 @@ from werkzeug.utils import secure_filename
 from clearfile import db, note
 
 app = Flask(__name__)
-app.config.update(
-    TEMPLATES_AUTO_RELOAD=True
-)
+app.config.update(TEMPLATES_AUTO_RELOAD=True)
 
 
 def setup_environments():
@@ -30,8 +28,8 @@ def setup_environments():
 
 
 setup_environments()
-db.create_db_if_not_exists(os.path.join(app.root_path, 'clearfile.sql'),
-                           app.config['DB_FILE'])
+db.create_db_if_not_exists(
+    os.path.join(app.root_path, 'clearfile.sql'), app.config['DB_FILE'])
 
 
 class APIError(Exception):
@@ -45,10 +43,7 @@ class APIError(Exception):
 
     def to_dict(self):
         """Return error as dictionary, useful for serialization to JSON."""
-        return {
-            'status': 'error',
-            'message': self.message
-        }
+        return {'status': 'error', 'message': self.message}
 
 
 @app.errorhandler(APIError)
@@ -61,10 +56,7 @@ def handle_api_error(error):
 
 def ok(message=None):
     """Return a generic JSON ok response."""
-    return json.dumps({
-        'status': 'ok',
-        'message':  message
-    })
+    return json.dumps({'status': 'ok', 'message': message})
 
 
 # A table mapping EXIF oreintation tags to rotations/reflections.
@@ -115,13 +107,12 @@ def search():
     conn = dataset.connect(app.config['DB_URL'])
     with conn:
         search = request.args.get('query', default='')
-        notes = db.note_search(conn, search,
-                               notebook=request.args.get('notebook', None))
+        notes = db.note_search(
+            conn, search, notebook=request.args.get('notebook', None))
         notebooks = db.get_notebooks(conn)
         # See search_result.html for details on how notes are converted to HTML note cards.
-        return render_template('search_result.html',
-                               notes=notes,
-                               notebooks=notebooks)
+        return render_template(
+            'search_result.html', notes=notes, notebooks=notebooks)
 
 
 @app.route('/note/<uuid>', methods=['GET'])
@@ -150,7 +141,9 @@ def handle_upload():
     Client must supply note title and image, other information is found via processing the image.
     """
     if 'image' not in request.files or 'title' not in request.form:
-        raise APIError('Client must supply both an image and a title field for note uploads.')
+        raise APIError(
+            'Client must supply both an image and a title field for note uploads.'
+        )
     image_handle = request.files['image']
     data = image_handle.read()
     image = Image.open(io.BytesIO(data))
