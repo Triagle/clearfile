@@ -82,6 +82,7 @@ def note_search(conn, search, notebook=None):
 
 
 def add_tags(db, *tags):
+    """Add insert new tags into database."""
     db['tags'].insert_many([
         {'uuid': tag.uuid, 'tag': tag.tag}
         for tag in tags
@@ -89,6 +90,7 @@ def add_tags(db, *tags):
 
 
 def add_note(db, user_note):
+    """Add notes to database, also adds tags into database as well."""
     db['notes'].insert(dict(
         uuid=user_note.uuid,
         name=user_note.name,
@@ -98,6 +100,7 @@ def add_note(db, user_note):
 
 
 def update_tags(db, nt, new_tags):
+    """Update tags of note within database, only including changes to tag set."""
     old_tags = {tag.tag for tag in nt.tags}
     new_tags = set(new_tags)
 
@@ -110,6 +113,7 @@ def update_tags(db, nt, new_tags):
 
 
 def update_note(db, data):
+    """Update data of note within database."""
     old_note = note_for_uuid(db, data['uuid'])
     if 'tags' in data:
         update_tags(db, old_note, data['tags'])
@@ -122,30 +126,36 @@ def update_note(db, data):
 
 
 def remove_note_from_notebook(db, uuid):
+    """Remove note from database."""
     data = {'uuid': uuid, 'notebook': None}
     db['notes'].update(data, ['uuid'])
 
 
 def delete_notebook(db, notebook):
-    _ = db.query('PRAGMA foreign_keys=ON')
+    """Delete notebook from database, cascading changes onto all notes."""
+    db.query('PRAGMA foreign_keys=ON')
     db['notebooks'].delete(name=notebook)
 
 
 def add_notebook(db, notebook):
+    """Insert new notebook into database."""
     db['notebooks'].insert(dict(name=notebook))
 
 
 def notebook_for_id(db, id):
+    """Return notebook for notebook id."""
     res = db['notebooks'].find_one(id=id)
     return note.Notebook(**res)
 
 
 def delete_note(db, uuid):
-    _ = db.query('PRAGMA foreign_keys=ON')
+    """Delete note from database, and associated tags."""
+    db.query('PRAGMA foreign_keys=ON')
     db['notes'].delete(uuid=uuid)
 
 
 def get_notebooks(db):
+    """Get all notesbooks in the database."""
     return [
         note.Notebook(**nb)
         for nb in db['notebooks'].all()
@@ -153,10 +163,12 @@ def get_notebooks(db):
 
 
 def delete_tag(db, tag_id):
+    """Delete tag from the database."""
     db['tags'].delete(id=tag_id)
 
 
 def create_db_if_not_exists(schema_file, db_file):
+    """Create database if it doesn't exist and excecute intialization schema."""
     conn = sqlite3.connect(db_file)
     with conn:
         with open(schema_file) as f:
