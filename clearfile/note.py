@@ -3,10 +3,7 @@ import json
 import pathlib
 from collections import namedtuple
 from clearfile import ocr, keywords
-try:
-    import Image
-except ImportError:
-    from PIL import Image
+from PIL import Image
 
 # Buffer size for reading in image files to hash
 HASH_BUF_SIZE = 65536
@@ -39,13 +36,27 @@ class Note(object):
     ''' Represents a single note (image). Holds information like ocr
     recovered text, the fullpath, tags, etc. '''
 
-    def __init__(self, uuid, name, ocr_text=None, tags=None, notebook=None):
+    def __init__(self,
+                 uuid,
+                 name,
+                 mime,
+                 ocr_text=None,
+                 tags=None,
+                 notebook=None):
         ''' Initialize note object. '''
         self.uuid = uuid
         self.name = name
+        self.mime = mime
         self.tags = tags or []
+        self.thumb = False
         self.notebook = notebook
         self.ocr_text = ocr_text or ''
+
+    @property
+    def has_thumbnail(self):
+        """Returns True if the note possess a thumbnail."""
+        # Image files are assumed to have use themselves as a thumbnail.
+        return not self.mime.startswith('image/')
 
     def __repr__(self):
         ''' Return the representation of the note. '''
@@ -57,10 +68,10 @@ class Note(object):
         return self.ocr_text
 
 
-
-def scan_note(note, image, **tesseract_opts):
+def scan_note(note, data, **tesseract_opts):
     ''' Scan note using tesseract-ocr. '''
-    note.ocr_text = ocr.scan(image)
+
+    note.ocr_text = ocr.scan(data, note.mime)
     note.tags = [
         Tag(None, note.uuid, keyword)
         for keyword in keywords.keywords_of('en_NZ', note.ocr_text)
@@ -69,14 +80,17 @@ def scan_note(note, image, **tesseract_opts):
 
 class NoteEncoder(json.JSONEncoder):
     ''' Encode Note into JSON. '''
+
     def default(self, obj):
         ''' overridden default to encode Nte into JSON. '''
         if isinstance(obj, Note):
             tags = [{"id": tag.id, "tag": tag.tag} for tag in obj.tags]
-            return {'uuid': obj.uuid,
-                    'name': obj.name,
-                    'tags': tags,
-                    'ocr_text': obj.ocr_text}
+            return {
+                'uuid': obj.uuid,
+                'name': obj.name,
+                'tags': tags,
+                'ocr_text': obj.ocr_text
+            }
         elif isinstance(obj, pathlib.PurePath):
             return str(obj)
         return json.JSONEncoder.default(self, obj)

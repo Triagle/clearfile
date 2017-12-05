@@ -19,10 +19,7 @@ def note_for_uuid(db, uuid):
 
 def get_tags_for_note(db, uuid):
     """Return the tags for a note of a given uuid."""
-    return [
-        note.Tag(**tag)
-        for tag in db['tags'].find(uuid=uuid)
-    ]
+    return [note.Tag(**tag) for tag in db['tags'].find(uuid=uuid)]
 
 
 def get_notes(db):
@@ -84,19 +81,20 @@ def note_search(conn, search, notebook=None):
 
 def add_tags(db, *tags):
     """Add insert new tags into database."""
-    db['tags'].insert_many([
-        {'uuid': tag.uuid, 'tag': tag.tag}
-        for tag in tags
-    ])
+    db['tags'].insert_many([{
+        'uuid': tag.uuid,
+        'tag': tag.tag
+    } for tag in tags])
 
 
 def add_note(db, user_note):
     """Add notes to database, also adds tags into database as well."""
-    db['notes'].insert(dict(
-        uuid=user_note.uuid,
-        name=user_note.name,
-        ocr_text=user_note.ocr_text
-    ))
+    db['notes'].insert(
+        dict(
+            uuid=user_note.uuid,
+            name=user_note.name,
+            ocr_text=user_note.ocr_text,
+            mime=user_note.mime))
     add_tags(db, *user_note.tags)
 
 
@@ -157,10 +155,7 @@ def delete_note(db, uuid):
 
 def get_notebooks(db):
     """Get all notesbooks in the database."""
-    return [
-        note.Notebook(**nb)
-        for nb in db['notebooks'].all()
-    ]
+    return [note.Notebook(**nb) for nb in db['notebooks'].all()]
 
 
 def delete_tag(db, tag_id):

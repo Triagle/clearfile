@@ -7,12 +7,13 @@ import io
 import dataset
 import json
 import uuid
+import mimetypes
 from PIL import Image, ExifTags
 
 from flask import Flask, render_template, request, send_from_directory, jsonify
 from werkzeug.utils import secure_filename
 
-from clearfile import db, note
+from clearfile import db, note, thumbnail
 
 app = Flask(__name__)
 app.config.update(TEMPLATES_AUTO_RELOAD=True)
@@ -59,37 +60,6 @@ def ok(message=None):
     return json.dumps({'status': 'ok', 'message': message})
 
 
-# A table mapping EXIF oreintation tags to rotations/reflections.
-# EXIF oreintation tags describe the camera's oreintation relative to the captured image.
-# See http://jpegclub.org/exif_orientation.html for oreintation details.
-FLIP_METHOD = {
-    2: [Image.FLIP_LEFT_RIGHT],
-    3: [Image.ROTATE_180],
-    4: [Image.FLIP_TOP_BOTTOM],
-    5: [Image.FLIP_LEFT_RIGHT, Image.ROTATE_90],
-    6: [Image.ROTATE_270],
-    7: [Image.FLIP_LEFT_RIGHT, Image.ROTATE_270],
-    8: [Image.ROTATE_90]
-}
-
-
-def restore_rotation(img):
-    """Restore correct rotation of the image by inspecting the EXIF data of the image."""
-    exifdict = img._getexif()
-    orientation = 1
-
-    for k, v in exifdict.items():
-        if ExifTags.TAGS[k] == 'Orientation':
-            orientation = v
-            break
-
-    if orientation > 1:
-        for method in FLIP_METHOD[orientation]:
-            img = img.transpose(method)
-
-    return img
-
-
 @app.route('/')
 def web():
     """Return default index.html view."""
@@ -131,7 +101,19 @@ def get_note(uuid):
 def uploads(uuid):
     """Show note image associated with note UUID."""
     uuid = secure_filename(uuid)
-    return send_from_directory(app.config['CLEARFILE_DIR'], f'{uuid}.jpg')
+    conn = dataset.connect(app.config['DB_URL'])
+
+    with conn:
+        note = db.note_for_uuid(conn, uuid)
+
+    mime = note.mime
+    extension = mimetypes.guess_extension(mime)
+    fp = uuid + extension
+    directory = app.config['CLEARFILE_DIR']
+    if note.has_thumbnail:
+        directory = os.path.join(directory, 'thumb')
+        fp = uuid + '.jpe'
+    return send_from_directory(directory, fp)
 
 
 @app.route('/upload', methods=['POST'])
@@ -144,17 +126,31 @@ def handle_upload():
         raise APIError(
             'Client must supply both an image and a title field for note uploads.'
         )
-    image_handle = request.files['image']
-    data = image_handle.read()
-    image = Image.open(io.BytesIO(data))
-    image = restore_rotation(image)
-    note_uuid = str(uuid.uuid4())
-    filename = f'{note_uuid}.jpg'
-    path = os.path.join(app.config['CLEARFILE_DIR'], filename)
     title = request.form['title']
-    user_note = note.Note(note_uuid, title)
-    note.scan_note(user_note, image=image)
-    image.save(path, 'JPEG', quality=80, optimize=True, progressive=True)
+    image_handle = request.files['image']
+    data = io.BytesIO(image_handle.read())
+    mime = image_handle.content_type
+    note_uuid = str(uuid.uuid4())
+    extension = mimetypes.guess_extension(mime)
+    fp = note_uuid + extension
+    path = os.path.join(app.config['CLEARFILE_DIR'], fp)
+
+    if mime.startswith('image/'):
+        image = Image.open(data)
+        image.save(path, 'JPEG', quality=80, optimize=True, progressive=True)
+    else:
+        with open(path, 'wb') as out:
+            out.write(data.read())
+
+    user_note = note.Note(note_uuid, title, mime)
+
+    note.scan_note(user_note, path)
+    if not user_note.mime.startswith('image/'):
+        # generate thumbnail for note.
+        thumb_path = os.path.join(app.config['CLEARFILE_DIR'], 'thumb',
+                                  f'{user_note.uuid}.jpe')
+        thumbnail.create_thumbnail(path, user_note.mime, thumb_path)
+
     conn = dataset.connect(app.config['DB_URL'])
     with conn:
         db.add_note(conn, user_note)
@@ -182,8 +178,10 @@ def handle_delete(uuid):
     conn = dataset.connect(app.config['DB_URL'])
     try:
         with conn:
+            note = db.note_for_uuid(uuid)
             db.delete_note(conn, uuid)
-        path = os.path.join(app.config['CLEARFILE_DIR'], f'{uuid}.jpg')
+        extension = mimetypes.guess_extension(note.mime)
+        path = os.path.join(app.config['CLEARFILE_DIR'], uuid + extension)
         os.unlink(path)
         return ok()
     except FileNotFoundError as f:

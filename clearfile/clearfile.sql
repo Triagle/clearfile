@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS `notes` (
 	`uuid`	TEXT,
 	`name`	TEXT,
 	`ocr_text`	TEXT,
+  `mime` TEXT,
   `notebook` INTEGER,
 	PRIMARY KEY(`uuid`),
   FOREIGN KEY(`notebook`) REFERENCES `notebooks`(`id`) ON DELETE SET NULL
