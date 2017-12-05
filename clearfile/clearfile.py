@@ -23,6 +23,7 @@ def setup_environments():
     """Initialize file and url environments for app configuration."""
     clearfile_dir = os.environ.get('CLEARFILE_DIR')
     db_file = os.path.join(clearfile_dir, 'clearfile.db')
+    os.mkdir(os.path.join(clearfile_dir, 'thumb'))
     app.config['CLEARFILE_DIR'] = clearfile_dir
     app.config['DB_FILE'] = db_file
     app.config['DB_URL'] = f'sqlite:///{db_file}'
