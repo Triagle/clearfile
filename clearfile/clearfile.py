@@ -110,7 +110,7 @@ def uploads(uuid):
     extension = mimetypes.guess_extension(mime)
     fp = uuid + extension
     directory = app.config['CLEARFILE_DIR']
-    if note.has_thumbnail:
+    if 'thumb' in request.args and note.has_thumbnail:
         directory = os.path.join(directory, 'thumb')
         fp = uuid + '.jpe'
     return send_from_directory(directory, fp)
