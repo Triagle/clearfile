@@ -8,13 +8,12 @@ name = "pypi"
 [packages]
 
 pytesseract = "*"
-numpy = "*"
-opencv-python = "*"
 flask = "*"
 fuzzywuzzy = "*"
 rake-nltk = "*"
 pillow = "*"
 pyenchant = "*"
+python-Levenshtein = "*"
 dataset = "*"
 
 
