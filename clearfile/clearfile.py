@@ -8,7 +8,7 @@ import dataset
 import json
 import uuid
 import mimetypes
-from PIL import Image, ExifTags
+from PIL import Image
 
 from flask import Flask, render_template, request, send_from_directory, jsonify
 from werkzeug.utils import secure_filename
