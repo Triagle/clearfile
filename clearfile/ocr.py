@@ -2,7 +2,7 @@ import tempfile
 import subprocess
 import pytesseract
 import os
-import io
+import multiprocessing
 from PIL import Image, ExifTags
 pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract-ocr'
 
@@ -50,10 +50,23 @@ def pdf_as_images(pdf, directory):
     """Convert pdf to a series of pages as images and return the paths to those
     pages."""
     # convert -density 600 foo.pdf foo-%02d.jpg
-    subprocess.run([
-        'convert', '-density', '600', pdf,
-        os.path.join(directory, 'page-%02d.jpg')
-    ])
+    thread_count = multiprocessing.cpu_count()
+    page_count = int(subprocess.check_output(
+        f'gs -q -dNODISPLAY -c "({pdf}) (r) file runpdfbegin pdfpagecount = quit"',
+        shell=True))
+    path = os.path.join(directory, 'page-%d.jpg')
+    subprocess.run(['gs',
+                    f'-dNumRenderingThreads={thread_count}',
+                    '-dNOPAUSE',
+                    '-sDEVICE=pngalpha',
+                    '-dFirstPage=1',
+                    f'-dLastPage={page_count}',
+                    f'-sOutputFile={path}',
+                    '-r300',
+                    '-q',
+                    pdf,
+                    '-c',
+                    'quit'])
     return (os.path.join(directory, f) for f in os.listdir(directory)
             if f.startswith('page-'))
 
@@ -62,10 +75,10 @@ def scan_pdf(pdf, **tesseract_opts):
     """Scan a pdf by breaking the file into component pages and scanning each
     page individually."""
     ocr_text = ''
-
+    thread_count = multiprocessing.cpu_count()
     with tempfile.TemporaryDirectory() as directory:
-        for page in pdf_as_images(pdf, directory):
-            ocr_text += scan_img(page)
+        with multiprocessing.Pool(thread_count) as p:
+            ocr_text = ''.join(p.map(scan_img, pdf_as_images(pdf, directory)))
 
     return ocr_text
 
