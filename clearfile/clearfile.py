@@ -180,7 +180,7 @@ def handle_delete(uuid):
     conn = dataset.connect(app.config['DB_URL'])
     try:
         with conn:
-            note = db.note_for_uuid(uuid)
+            note = db.note_for_uuid(conn, uuid)
             db.delete_note(conn, uuid)
         extension = mimetypes.guess_extension(note.mime)
         path = os.path.join(app.config['CLEARFILE_DIR'], uuid + extension)
