@@ -23,6 +23,8 @@ FLIP_METHOD = {
 def restore_rotation(img):
     """Restore correct rotation of the image by inspecting the EXIF data of the image."""
     exifdict = img._getexif()
+    if exifdict is None:
+        return img
     orientation = 1
 
     for k, v in exifdict.items():
@@ -40,7 +42,6 @@ def restore_rotation(img):
 def scan_img(img, **tesseract_opts):
     """Scan an image and return the text on that image."""
     img = Image.open(img)
-
     grey = img.convert('L')
     ocr_text = pytesseract.image_to_string(grey, **tesseract_opts)
     return ocr_text
