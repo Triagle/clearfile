@@ -42,7 +42,8 @@ class Note(object):
                  mime,
                  ocr_text=None,
                  tags=None,
-                 notebook=None):
+                 notebook=None,
+                 location=None):
         ''' Initialize note object. '''
         self.uuid = uuid
         self.name = name
@@ -50,6 +51,7 @@ class Note(object):
         self.tags = tags or []
         self.thumb = False
         self.notebook = notebook
+        self.location = location
         self.ocr_text = ocr_text or ''
 
     @property
@@ -89,7 +91,8 @@ class NoteEncoder(json.JSONEncoder):
                 'uuid': obj.uuid,
                 'name': obj.name,
                 'tags': tags,
-                'ocr_text': obj.ocr_text
+                'ocr_text': obj.ocr_text,
+                'location': obj.location
             }
         elif isinstance(obj, pathlib.PurePath):
             return str(obj)

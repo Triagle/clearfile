@@ -56,7 +56,7 @@ def closest_matches(query, notes, k=10, lower_bound=None):
     return [nt for _, nt in heap]
 
 
-def note_search(conn, search, notebook=None):
+def note_search(conn, search, notebook=None, at=None):
     """Search notes in database based on a query."""
     notes = get_notes(conn)
 
@@ -67,13 +67,13 @@ def note_search(conn, search, notebook=None):
     filtered_notes = []
 
     for n in processed_notes:
-        if notebook is None:
-            filtered_notes.append(n)
-        elif n.notebook is None:
-            # User specified a notebook but this note has one, continue
+        if at is not None and n.location != at:
             continue
-        elif n.notebook.name.lower() == notebook.lower():
-            # User specified a notebook and it matches the note we're looking at
+        elif notebook and n.notebook is None:
+            continue
+        elif notebook and n.notebook and n.notebook.name.lower() != notebook.lower():
+            continue
+        else:
             filtered_notes.append(n)
 
     return filtered_notes
@@ -94,7 +94,8 @@ def add_note(db, user_note):
             uuid=user_note.uuid,
             name=user_note.name,
             ocr_text=user_note.ocr_text,
-            mime=user_note.mime))
+            mime=user_note.mime,
+            location=user_note.location))
     add_tags(db, *user_note.tags)
 
 

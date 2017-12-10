@@ -1,6 +1,7 @@
 import tempfile
 import subprocess
 import pytesseract
+import requests
 import os
 import multiprocessing
 from PIL import Image, ExifTags
@@ -90,3 +91,41 @@ SCAN_TABLE = {'image/jpeg': scan_img, 'application/pdf': scan_pdf}
 def scan(f, mimetype, **tesseract_opts):
     """Scan a file, using it's mimetype to determine the appropriate scanning routines."""
     return SCAN_TABLE[mimetype](f, **tesseract_opts)
+
+
+def get_gps_data(img):
+    """Retrieve raw GPS data from image if it has any."""
+    exifdata = img._getexif()
+    if exifdata is None:
+        return None
+    gps_dict = None
+    for k, v in exifdata.items():
+        if ExifTags.TAGS.get(k, None) == 'GPSInfo':
+            gps_dict = v
+            break
+
+    if gps_dict is None:
+        return None
+
+    return {ExifTags.GPSTAGS.get(k, k): v for k, v in gps_dict.items()}
+
+
+def gps_to_float(coord, hemisphere):
+    """Convert a coord into a float for lat/long. """
+    degrees, minutes, seconds = tuple([a / b for a, b in list(coord)])
+    point = degrees + (minutes / 60) + (seconds / 3600)
+    if hemisphere == 'S' or hemisphere == 'W':
+        point *= -1
+    return point
+
+
+def get_gps_position(img):
+    """Return a latitude,longitude tuple for an image, if it has geotagging support."""
+    gps_data = get_gps_data(img)
+    if gps_data is None:
+        return None
+    lat = gps_to_float(gps_data['GPSLatitude'], gps_data['GPSLatitudeRef'])
+    lon = gps_to_float(gps_data['GPSLongitude'], gps_data['GPSLongitudeRef'])
+
+    return lat, lon
+

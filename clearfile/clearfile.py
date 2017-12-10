@@ -5,7 +5,9 @@ Responsible for handling client interactions and maintaining core databases.
 import os
 import io
 import dataset
+import requests
 import json
+import multiprocessing
 import uuid
 import mimetypes
 from PIL import Image
@@ -80,7 +82,8 @@ def search():
     with conn:
         search = request.args.get('query', default='')
         notes = db.note_search(
-            conn, search, notebook=request.args.get('notebook', None))
+            conn, search, notebook=request.args.get('notebook', None),
+            at=request.args.get('at', None))
         notebooks = db.get_notebooks(conn)
         # See search_result.html for details on how notes are converted to HTML note cards.
         return render_template(
@@ -118,6 +121,29 @@ def uploads(uuid):
     return send_from_directory(directory, fp)
 
 
+LOCATION_SPECIFITY = {'locality', 'premise', 'sublocality'}
+
+
+def update_location(uuid, gps_data):
+    lat, lon = gps_data
+    query = f'http://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lon}'
+    location = None
+
+    with requests.get(query) as r:
+        json = r.json()
+        if json['status'] != 'OK':
+            return
+        result = json['results'][0]
+        for component in result['address_components']:
+            if set(component['types']) & LOCATION_SPECIFITY:
+                location = component['long_name']
+                break
+
+    conn = dataset.connect(app.config['DB_URL'])
+    with conn:
+        db.update_note(conn, {'uuid': uuid, 'location': location})
+    return location
+
 @app.route('/upload', methods=['POST'])
 def handle_upload():
     """Add new note to database, based on uploaded data.
@@ -136,10 +162,15 @@ def handle_upload():
     extension = mimetypes.guess_extension(mime)
     fp = note_uuid + extension
     path = os.path.join(app.config['CLEARFILE_DIR'], fp)
+    fetch_location = False
+    image = None
+    gps_data = None
 
     if mime.startswith('image/'):
         image = Image.open(data)
+        gps_data = ocr.get_gps_position(image)
         image = ocr.restore_rotation(image)
+        fetch_location = True
         image.save(path, 'JPEG', quality=80, optimize=True, progressive=True)
     else:
         with open(path, 'wb') as out:
@@ -157,6 +188,11 @@ def handle_upload():
     conn = dataset.connect(app.config['DB_URL'])
     with conn:
         db.add_note(conn, user_note)
+
+    if fetch_location:
+        p = multiprocessing.Process(target=update_location, args=(user_note.uuid,gps_data))
+        p.start()
+
     return ok()
 
 

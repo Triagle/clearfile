@@ -13,8 +13,9 @@ fuzzywuzzy = "*"
 rake-nltk = "*"
 pillow = "*"
 pyenchant = "*"
-python-Levenshtein = "*"
+python-levenshtein = "*"
 dataset = "*"
+requests = "*"
 
 
 [dev-packages]
