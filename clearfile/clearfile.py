@@ -13,7 +13,7 @@ from PIL import Image
 from flask import Flask, render_template, request, send_from_directory, jsonify
 from werkzeug.utils import secure_filename
 
-from clearfile import db, note, thumbnail
+from clearfile import db, note, thumbnail, ocr
 
 app = Flask(__name__)
 app.config.update(TEMPLATES_AUTO_RELOAD=True)
@@ -139,6 +139,7 @@ def handle_upload():
 
     if mime.startswith('image/'):
         image = Image.open(data)
+        image = ocr.restore_rotation(image)
         image.save(path, 'JPEG', quality=80, optimize=True, progressive=True)
     else:
         with open(path, 'wb') as out:
