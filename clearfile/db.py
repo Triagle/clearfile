@@ -41,42 +41,25 @@ def rank_note(query, note):
     return max(match_ocr, match_title)
 
 
-def closest_matches(query, notes, k=10, lower_bound=None):
-    """Return the k closest matches to the search query with a lower bound."""
-    heap = []
-    for nt in notes:
-        score = -rank_note(query, nt)
-        if abs(score) < lower_bound:
-            continue
-        if len(heap) < k or heap[0][0] < score:
-            if len(heap) > k:
-                heapq.heappop(heap)
-            heapq.heappush(heap, (score, nt))
-
-    return [nt for _, nt in heap]
-
-
 def note_search(conn, search, notebook=None, at=None):
     """Search notes in database based on a query."""
     notes = get_notes(conn)
-
-    if len(search) > 0:
-        processed_notes = closest_matches(search, notes, lower_bound=50)
-    else:
-        processed_notes = notes
     filtered_notes = []
 
-    for n in processed_notes:
-        if at is not None and n.location != at:
+    for n in notes:
+        if at and n.location != at:
             continue
         elif notebook and n.notebook is None:
             continue
         elif notebook and n.notebook and n.notebook.name.lower() != notebook.lower():
             continue
         else:
-            filtered_notes.append(n)
+            score = rank_note(search, n)
+            if search == '' or score > 50:
+                filtered_notes.append((score, n))
 
-    return filtered_notes
+    largest = heapq.nlargest(10, filtered_notes, key=lambda r: r[0])
+    return [nt for _, nt in largest]
 
 
 def add_tags(db, *tags):
