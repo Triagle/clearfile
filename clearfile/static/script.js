@@ -1,15 +1,23 @@
+function parseQuery(query) {
+    let searchRe = new Map([
+        ['at', /@([^\+]+)/g],
+        ['notebook', /\+([^@]+)/g],
+        ['query', /^([^(\+|@)]+)/g]
+    ]);
+    let results = Array.from(searchRe.values()).map(re => (re.exec(query) || []).slice(1));
+    let zip = (...rows) => [...rows[0]].map((_,c) => rows.map(row => row[c]))
+    return new Map(zip(Array.from(searchRe.keys()), results));
+}
+
+function queryFromMap(map) {
+    var entries = map.entries();
+    var [key, value] = entries.next().value;
+    return Array.from(entries).reduce((acc, [key, value]) => acc + `&${key}=${value || ''}`.trim(), `?${key}=${value || ''}`.trim());
+}
+
 function addResults(query) {
-    let rx = /(\w+):"([^"]+)"/g;
-    let opts = rx.exec(query);
-    var search_query = query;
-    var opts_string = "";
-    if (opts != null) {
-        for (var i = 1; i < opts.length; i += 2) {
-            opts_string += `&${opts[i]}=${opts[i + 1]}`;
-        }
-        search_query = query.replace(rx, "").trim();
-    }
-    $.get('/search?query=' + search_query + opts_string, function (text, status) {
+    let formatted_query = queryFromMap(parseQuery(query))
+    $.get('/search' + formatted_query, function (text, status) {
         $(".search-result-container").html(text);
         $('.materialboxed').materialbox();
         $('.dropdown-button').dropdown({
