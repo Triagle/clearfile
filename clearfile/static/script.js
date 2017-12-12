@@ -63,7 +63,7 @@ function addResults(query) {
             } else {
                 Materialize.toast("Error deleting note.", 1000);
             }
-            addResults("");
+            addResults($("#clearfile-search-input").val());
         });
     });
 
@@ -83,7 +83,7 @@ function addResults(query) {
             url: '/update/note',
             data: JSON.stringify(data),
             success: function (text, status) {
-                addResults("");
+                addResults($("#clearfile-search-input").val());
             },
             dataType: 'json',
             contentType: 'application/json'
@@ -126,7 +126,7 @@ function addResults(query) {
                 url: '/update/note',
                 data: JSON.stringify(data),
                 success: function (text, status) {
-                    addResults("");
+                    addResults($("#clearfile-search-input").val());
                 },
                 dataType: 'json',
                 contentType: 'application/json'
@@ -141,7 +141,7 @@ function addResults(query) {
     $("#notebook-form").submit(function (event) {
         event.preventDefault();
         $.get("/add/notebook?" + $('#notebook-form').serialize(), function (data, status) {
-            addResults("");
+            addResults($("#clearfile-search-input").val());
             $('#add-notebook').modal('close');
         });
     });
@@ -182,7 +182,7 @@ function addResults(query) {
     });
 
     $('.reset-page').on('click', function () {
-        $('#clearfile-search-input').val("");
+        $("#clearfile-search-input").val("");
         addResults("");
     });
     addResults("");
