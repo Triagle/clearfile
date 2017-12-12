@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS `notes` (
 	`name`	TEXT,
 	`ocr_text`	TEXT,
   `mime` TEXT,
+  `location` TEXT,
   `notebook` INTEGER,
 	PRIMARY KEY(`uuid`),
   FOREIGN KEY(`notebook`) REFERENCES `notebooks`(`id`) ON DELETE SET NULL
