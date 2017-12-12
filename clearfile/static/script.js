@@ -1,106 +1,46 @@
-function buildDom(nodes) {
-    let root = nodes[0];
-    for (let index = 1; index < nodes.length; ++index) {
-        let child = nodes[index];
-        if (child.constructor === Array) {
-            child = buildDom(child);
-        }
-        root.appendChild(child);
-    }
-    return root;
+function parseQuery(query) {
+    let searchRe = new Map([
+        ['at', /@([^\+]+)/g],
+        ['notebook', /\+([^@]+)/g],
+        ['query', /^([^(\+|@)]+)/g]
+    ]);
+    let results = Array.from(searchRe.values()).map(re => (re.exec(query) || []).slice(1));
+    let zip = (...rows) => [...rows[0]].map((_,c) => rows.map(row => row[c]))
+    return new Map(zip(Array.from(searchRe.keys()), results));
 }
 
-function emptyNotes() {
-    var html = `<div class="col s12 m12 l12" id="no-notes-found">
-                    <div class="full-height valign-wrapper">
-                        <h2 class="center-align full-width grey-text text-lighten-1">No Notes.</h1>
-                    </div>
-                </div>
-                <div class="col s12 m12 l12">
-                    <ul id="clearfile-search-results" class="search-results">
-                    </ul>
-                </div>`;
-    var noteResults = $(".search-result-container");
-    noteResults.html(html)
-}
-
-function buildNoteCard(uuid, title, image_link, tags, link) {
-    var column = document.createElement("div");
-    column.classList.add("col");
-    column.classList.add("s12");
-    column.classList.add("m6");
-    column.classList.add("l6");
-    var card = document.createElement("div");
-    card.classList.add("card");
-    var card_image = document.createElement("div");
-    card_image.classList.add("card-image");
-    var image = document.createElement("img");
-    image.src = image_link;
-    // image.setAttribute("src", image);
-    var card_title = document.createElement("span");
-    card_title.classList.add("card-title");
-    card_title.appendChild(document.createTextNode(title));
-    card_content = document.createElement("div");
-    card_content.classList.add("card-content");
-    for (let tag of tags) {
-        var chip = document.createElement("div");
-        chip.classList.add("chip");
-        chip.innerText = tag.tag;
-        var close = document.createElement("i");
-        close.classList.add("close");
-        close.classList.add("material-icons");
-        close.classList.add("kill-tag");
-        close.setAttribute("data-tag-id", tag.id);
-        close.innerText = "close";
-        chip.appendChild(close);
-        card_content.appendChild(chip);
-    }
-    var card_action = document.createElement("div");
-    card_action.classList.add("card-action");
-    var note_link = document.createElement("a");
-    note_link.href = link;
-    note_link.innerHTML = "View";
-    var delete_link = document.createElement("a");
-    delete_link.classList.add("delete-note");
-    delete_link.href = "/delete/" + uuid;
-    delete_link.innerHTML = "Delete";
-    var card = buildDom([column,
-                         [card,
-                         [card_image,
-                          image,
-                          card_title],
-                         card_content,
-                         [card_action,
-                          note_link,
-                          delete_link]]]);
-   return card
+function queryFromMap(map) {
+    var entries = map.entries();
+    var [key, value] = entries.next().value;
+    return Array.from(entries).reduce((acc, [key, value]) => acc + `&${key}=${value || ''}`.trim(), `?${key}=${value || ''}`.trim());
 }
 
 function addResults(query) {
+    let formatted_query = queryFromMap(parseQuery(query))
+    $.get('/search' + formatted_query, function (text, status) {
+        $(".search-result-container").html(text);
+        $('.materialboxed').materialbox();
+        $('.dropdown-button').dropdown({
+            inDuration: 300,
+            outDuration: 225,
+            constrainWidth: false, // Does not change width of dropdown to that of the activator
+            gutter: 0, // Spacing from edge
+            belowOrigin: false, // Displays dropdown below the button
+            alignment: 'left', // Displays dropdown with edge aligned to the left of button
+            stopPropagation: false // Stops event propagation
+        });
 
-    $.get('/search?query=' + query, function (text, status) {
-        let json = JSON.parse(text);
-        if (json.length === 0) {
-            emptyNotes();
-        } else {
-            $("#no-notes-found").remove();
-            $("#clearfile-search-results").empty();
-            var clearfile_search_results = document.getElementById("clearfile-search-results");
-            for (let card of json) {
-                let link = '/uploads/' + card.uuid;
-                let dom_card = buildNoteCard(card.uuid, card.name, link, card.tags, link);
-                clearfile_search_results.appendChild(dom_card);
-            }
-        }
     });
 }
 
-$(document).ready(function() {
+ $(document).ready(function() {
     // the "href" attribute of .modal-trigger must specify the modal ID that wants to be triggered
     $('#upload-button').click(function (){
         $('#upload').modal();
         $('#upload').modal('open');
     });
+
+
     $('#upload-file').click(function () {
         $('#upload-form').submit();
     })
@@ -111,7 +51,9 @@ $(document).ready(function() {
         });
         addResults($("#clearfile-search-input").val());
     });
+
     $("#clearfile-search-input").val("");
+
     $('.search-result-container').on('click', '.delete-note', function (event) {
         event.preventDefault();
         $.get($(this).attr("href"), function (text, status) {
@@ -121,18 +63,101 @@ $(document).ready(function() {
             } else {
                 Materialize.toast("Error deleting note.", 1000);
             }
-            addResults("");
+            addResults($("#clearfile-search-input").val());
         });
     });
-    $('#form-upload-button').on('click', function() {
+
+    $('.search-result-container').on('click', '.update-notebook', function (event) {
+        event.preventDefault();
+        let noteUUID = $(this).attr('data-note-uuid');
+        var notebook = null;
+        if (!$(this).hasClass("delete-notebook")) {
+            notebook = $(this).attr('data-notebook');
+        }
+        var data = {
+            uuid: noteUUID,
+            notebook: notebook
+        };
+        $.ajax({
+            type: 'POST',
+            url: '/update/note',
+            data: JSON.stringify(data),
+            success: function (text, status) {
+                addResults($("#clearfile-search-input").val());
+            },
+            dataType: 'json',
+            contentType: 'application/json'
+        });
+    });
+
+    $('.search-result-container').on('click', '.update-note', function (event) {
+        let uuid = $(this).attr('data-note-uuid');
+        $.get('/note/' + uuid, function (text, status) {
+            let json = JSON.parse(text);
+            let tags = json['tags'];
+            let title = json['name'];
+            $('.chips').material_chip();
+            $('#edit-chip').material_chip({
+                data: tags.map(note_tag => ({tag: note_tag['tag']}))
+            });
+            $('#edit-note').modal();
+            $('#edit-note').modal('open');
+            $('#update-form input[name=title]').val(title);
+            $('#update-form input[name=title]').attr('data-note-uuid', uuid);
+        })
+    });
+
+    $('#modal-update-button').on('click', function (event) {
+        $('#update-form').submit();
+    })
+
+    $('#update-form').submit(function (event) {
+        event.preventDefault();
+        var tags = $('#edit-chip').material_chip('data').map(c => c.tag);
+        var title_form = $('#update-form input[name=title]');
+        var title = title_form.val();
+        var data = {
+            uuid: title_form.attr('data-note-uuid'),
+            tags: tags,
+            name: title
+        };
+        $.ajax({
+                type: 'POST',
+                url: '/update/note',
+                data: JSON.stringify(data),
+                success: function (text, status) {
+                    addResults($("#clearfile-search-input").val());
+                },
+                dataType: 'json',
+                contentType: 'application/json'
+        });
+    });
+
+    $('.search-result-container').on('click', '.add-notebook-button', function (event){
+        $('#add-notebook').modal();
+        $('#add-notebook').modal('open');
+    });
+
+    $("#notebook-form").submit(function (event) {
+        event.preventDefault();
+        $.get("/add/notebook?" + $('#notebook-form').serialize(), function (data, status) {
+            addResults($("#clearfile-search-input").val());
+            $('#add-notebook').modal('close');
+        });
+    });
+
+    $('#notebook-add-button').on('click', function() {
+        $('#notebook-form').submit();
+    });
+
+    $('#upload-form').submit(function (event) {
+        event.preventDefault();
         $.ajax({
             // Your server script to process the upload
             url: '/upload',
             type: 'POST',
-
             // Form data
             data: new FormData($('#upload-form')[0]),
-
             // Tell jQuery not to process data or worry about content-type
             // You *must* include these options!
             cache: false,
@@ -141,14 +166,24 @@ $(document).ready(function() {
         }).done(function (data) {
             addResults("");
         });
+    })
+
+    $('#form-upload-button').on('click', function() {
+        $('#upload-form').submit();
     });
+
     $('.search-result-container').on('click', '.kill-tag', function(e){
         let dataId = $(this).attr("data-tag-id");
-        $.get("/delete-tag/" + dataId, function (data) {
+        $.get("/delete/tag/" + dataId, function (data) {
             Materialize.toast("Tag Deleted.", 1000);
         }).fail(function() {
             Materialize.toast("Error deleting tag.", 1000);
         });
+    });
+
+    $('.reset-page').on('click', function () {
+        $("#clearfile-search-input").val("");
+        addResults("");
     });
     addResults("");
 });

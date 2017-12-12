@@ -17,25 +17,23 @@
     <body>
         <nav>
             <div class="nav-wrapper">
-                <a href="#" class="brand-logo right"><i class="material-icons">book</i></a>
+                <a href="#" class="brand-logo right"><i class="reset-page material-icons">book</i></a>
                 <form id="search-form" data-ajax="false" action="#">
                 <div class="input-field">
                     <input id="clearfile-search-input" type="search">
                     <label class="label-icon" for="clearfile-search-input" id="search-label"><i class="material-icons">search</i></label>
-                    <i class="material-icons">close</i>
+                    <i class="reset-page material-icons">close</i>
                 </div>
                 </form>
             </div>
         </nav>
         <div class="container">
             <div class="row search-result-container">
-                <div class="col s12 m12 l12">
-                    <ul id="clearfile-search-results" class="search-results">
-                    </ul>
+                <div class="col s12 cards-container" id="clearfile-search-results">
                 </div>
             </div>
             <div class="fixed-action-btn" >
-                <a class="btn-floating btn-large modal-trigger" id="upload-button" href="#upload"><i class="material-icons">publish</i></a>
+                <a class="btn-floating btn-large modal-trigger accent-bg-colour" id="upload-button" href="#upload"><i class="material-icons">publish</i></a>
             </div>
             <div id="upload" class="modal">
                 <div class="modal-content">
@@ -48,7 +46,7 @@
                         </div>
                         <div class="row">
                             <div class="file-field input-field">
-                                <div class="btn">
+                                <div class="btn accent-bg-colour">
                                     <span>Note</span>
                                     <input type="file" name="image" accept="image/*"/>
                                 </div>
@@ -59,9 +57,39 @@
                         </div>
 
                         <div class="modal-footer">
-                            <a href="#!" id="form-upload-button" class="modal-action modal-close waves-effect waves-green btn-flat">Upload</a>
+                            <a href="#!" id="form-upload-button" class="modal-action modal-close waves-effect waves-light btn accent-bg-colour">Upload</a>
                         </div>
                     </form>
+                </div>
+            </div>
+            <div id="add-notebook" class="modal">
+                <div class="modal-content">
+                    <form id="notebook-form">
+                        <div class="row">
+                            <h4>Add Notebook</h4>
+                            <div class="input-field">
+                                <input name="name" type="text" value=""/>
+                                <label for="name">Name</label>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <a href="#!" id="notebook-add-button" class="modal-action modal-close waves-effect waves-light accent-bg-colour btn">Add</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div id="edit-note" class="modal">
+                <div class="modal-content">
+                    <form id="update-form">
+                        <div class="row">
+                            <input name="title" type="text" value=""/>
+                            <label for="title">Title</label>
+                            <div id="edit-chip" class="chips chips-initial"></div>
+                        </div>
+                    </form>
+                    <div class="modal-footer">
+                        <a href="#!" id="modal-update-button" class="modal-action modal-close waves-effect waves-light accent-bg-colour btn">Update</a>
+                    </div>
                 </div>
             </div>
         </div>
