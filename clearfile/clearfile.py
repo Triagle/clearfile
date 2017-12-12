@@ -220,12 +220,12 @@ def handle_delete_tag(tag_id):
 def delete_note(uuid):
     """Delete note from database based on note UUID, also deleting tags attached to that note."""
     conn = dataset.connect(app.config['DB_URL'])
+    conn.engine.dispose()
     try:
         with conn:
             note = db.note_for_uuid(conn, uuid)
             db.delete_note(conn, uuid)
 
-        conn.engine.dispose()
         extension = mimetypes.guess_extension(note.mime)
         path = os.path.join(app.config['CLEARFILE_DIR'], uuid + extension)
         os.unlink(path)
