@@ -17,7 +17,7 @@ function queryFromMap(map) {
 
 function addResults(query) {
     let formatted_query = queryFromMap(parseQuery(query))
-    $.get('/search' + formatted_query, function (text, status) {
+    $.get(SCRIPT_ROOT + '/search' + formatted_query, function (text, status) {
         $(".search-result-container").html(text);
         $('.materialboxed').materialbox();
         $('.dropdown-button').dropdown({
@@ -80,7 +80,7 @@ function addResults(query) {
         };
         $.ajax({
             type: 'POST',
-            url: '/update/note',
+            url: SCRIPT_ROOT + '/update/note',
             data: JSON.stringify(data),
             success: function (text, status) {
                 addResults($("#clearfile-search-input").val());
@@ -92,7 +92,7 @@ function addResults(query) {
 
     $('.search-result-container').on('click', '.update-note', function (event) {
         let uuid = $(this).attr('data-note-uuid');
-        $.get('/note/' + uuid, function (text, status) {
+        $.get(SCRIPT_ROOT + '/note/' + uuid, function (text, status) {
             let json = JSON.parse(text);
             let tags = json['tags'];
             let title = json['name'];
@@ -123,7 +123,7 @@ function addResults(query) {
         };
         $.ajax({
                 type: 'POST',
-                url: '/update/note',
+                url: SCRIPT_ROOT + '/update/note',
                 data: JSON.stringify(data),
                 success: function (text, status) {
                     addResults($("#clearfile-search-input").val());
@@ -140,7 +140,7 @@ function addResults(query) {
 
     $("#notebook-form").submit(function (event) {
         event.preventDefault();
-        $.get("/add/notebook?" + $('#notebook-form').serialize(), function (data, status) {
+        $.get(SCRIPT_ROOT + "/add/notebook?" + $('#notebook-form').serialize(), function (data, status) {
             addResults($("#clearfile-search-input").val());
             $('#add-notebook').modal('close');
         });
@@ -154,7 +154,7 @@ function addResults(query) {
         event.preventDefault();
         $.ajax({
             // Your server script to process the upload
-            url: '/upload',
+            url: SCRIPT_ROOT + '/upload',
             type: 'POST',
             // Form data
             data: new FormData($('#upload-form')[0]),
@@ -174,7 +174,7 @@ function addResults(query) {
 
     $('.search-result-container').on('click', '.kill-tag', function(e){
         let dataId = $(this).attr("data-tag-id");
-        $.get("/delete/tag/" + dataId, function (data) {
+        $.get(SCRIPT_ROOT + "/delete/tag/" + dataId, function (data) {
             Materialize.toast("Tag Deleted.", 1000);
         }).fail(function() {
             Materialize.toast("Error deleting tag.", 1000);

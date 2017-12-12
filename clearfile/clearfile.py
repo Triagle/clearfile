@@ -212,7 +212,7 @@ def handle_delete_tag(tag_id):
 
 
 @app.route('/delete/note/<uuid>', methods=['GET'])
-def handle_delete(uuid):
+def delete_note(uuid):
     """Delete note from database based on note UUID, also deleting tags attached to that note."""
     conn = dataset.connect(app.config['DB_URL'])
     try:
