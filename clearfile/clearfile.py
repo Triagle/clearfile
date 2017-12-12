@@ -110,6 +110,7 @@ def uploads(uuid):
 
     with conn:
         note = db.note_for_uuid(conn, uuid)
+    conn.engine.dispose()
 
     mime = note.mime
     extension = mimetypes.guess_extension(mime)
@@ -142,6 +143,7 @@ def update_location(uuid, gps_data):
     conn = dataset.connect(app.config['DB_URL'])
     with conn:
         db.update_note(conn, {'uuid': uuid, 'location': location})
+    conn.engine.dispose()
     return location
 
 @app.route('/upload', methods=['POST'])
@@ -188,6 +190,7 @@ def handle_upload():
     conn = dataset.connect(app.config['DB_URL'])
     with conn:
         db.add_note(conn, user_note)
+    conn.engine.dispose()
 
     if fetch_location:
         p = multiprocessing.Process(target=update_location, args=(user_note.uuid,gps_data))
@@ -208,6 +211,8 @@ def handle_delete_tag(tag_id):
     with conn:
         db.delete_tag(conn, tag_id)
 
+    conn.engine.dispose()
+
     return ok()
 
 
@@ -219,6 +224,8 @@ def delete_note(uuid):
         with conn:
             note = db.note_for_uuid(conn, uuid)
             db.delete_note(conn, uuid)
+
+        conn.engine.dispose()
         extension = mimetypes.guess_extension(note.mime)
         path = os.path.join(app.config['CLEARFILE_DIR'], uuid + extension)
         os.unlink(path)
@@ -236,6 +243,8 @@ def add_notebook():
         raise APIError('Client must supply a valid notebook name.')
     with conn:
         db.add_notebook(conn, notebook)
+
+    conn.engine.dispose()
     return ok()
 
 
@@ -255,4 +264,5 @@ def update():
     conn = dataset.connect(app.config['DB_URL'])
     with conn:
         db.update_note(conn, data)
+    conn.engine.dispose()
     return ok()
