@@ -107,10 +107,10 @@ def uploads(uuid):
     """Show note image associated with note UUID."""
     uuid = secure_filename(uuid)
     conn = dataset.connect(app.config['DB_URL'])
+    conn.engine.dispose()
 
     with conn:
         note = db.note_for_uuid(conn, uuid)
-    conn.engine.dispose()
 
     mime = note.mime
     extension = mimetypes.guess_extension(mime)
@@ -141,9 +141,9 @@ def update_location(uuid, gps_data):
                 break
 
     conn = dataset.connect(app.config['DB_URL'])
+    conn.engine.dispose()
     with conn:
         db.update_note(conn, {'uuid': uuid, 'location': location})
-    conn.engine.dispose()
     return location
 
 @app.route('/upload', methods=['POST'])
@@ -188,9 +188,9 @@ def handle_upload():
         thumbnail.create_thumbnail(path, user_note.mime, thumb_path)
 
     conn = dataset.connect(app.config['DB_URL'])
+    conn.engine.dispose()
     with conn:
         db.add_note(conn, user_note)
-    conn.engine.dispose()
 
     if fetch_location:
         p = multiprocessing.Process(target=update_location, args=(user_note.uuid,gps_data))
@@ -208,10 +208,10 @@ def handle_delete_tag(tag_id):
         raise APIError('Tag must be an integer.')
 
     conn = dataset.connect(app.config['DB_URL'])
+    conn.engine.dispose()
     with conn:
         db.delete_tag(conn, tag_id)
 
-    conn.engine.dispose()
 
     return ok()
 
@@ -238,13 +238,13 @@ def delete_note(uuid):
 def add_notebook():
     """Add new notebook to database."""
     conn = dataset.connect(app.config['DB_URL'])
+    conn.engine.dispose()
     notebook = request.args.get('name')
     if notebook is None:
         raise APIError('Client must supply a valid notebook name.')
     with conn:
         db.add_notebook(conn, notebook)
 
-    conn.engine.dispose()
     return ok()
 
 
@@ -262,7 +262,7 @@ def update():
     elif 'uuid' not in data:
         raise APIError('Client must supply UUID to server.')
     conn = dataset.connect(app.config['DB_URL'])
+    conn.engine.dispose()
     with conn:
         db.update_note(conn, data)
-    conn.engine.dispose()
     return ok()
