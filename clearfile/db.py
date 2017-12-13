@@ -8,7 +8,8 @@ from clearfile import note
 
 def note_for_uuid(db, uuid):
     """For a given uuid, return a note class representing it."""
-    dict_note = db['notes'].find_one(uuid=uuid)
+    dict_note = db.execute('select * from notes where uuid = ?', (uuid,)).fetchone()
+    dict_note = dict(dict_note)
     if dict_note is None:
         raise KeyError('Invalid UUID for note.')
     if dict_note['notebook']:
@@ -19,13 +20,16 @@ def note_for_uuid(db, uuid):
 
 def get_tags_for_note(db, uuid):
     """Return the tags for a note of a given uuid."""
-    return [note.Tag(**tag) for tag in db['tags'].find(uuid=uuid)]
+    tags = db.execute('select * from tags where uuid = ?', (uuid,))
+    return [note.Tag(**tag) for tag in tags.fetchall()]
 
 
 def get_notes(db):
     """Get all notes from the database."""
     notes = []
-    for result in db['notes'].all():
+    results = db.execute('select * from notes')
+    for result in results.fetchall():
+        result = dict(result)
         if result.get('notebook', None):
             result['notebook'] = notebook_for_id(db, result['notebook'])
         tags = get_tags_for_note(db, result['uuid'])
@@ -64,21 +68,14 @@ def note_search(conn, search, notebook=None, at=None):
 
 def add_tags(db, *tags):
     """Add insert new tags into database."""
-    db['tags'].insert_many([{
-        'uuid': tag.uuid,
-        'tag': tag.tag
-    } for tag in tags])
+    db.executemany('insert into tags (uuid, tag) values (?, ?)',
+                   [(tag.uuid, tag.tag) for tag in tags])
 
 
 def add_note(db, user_note):
     """Add notes to database, also adds tags into database as well."""
-    db['notes'].insert(
-        dict(
-            uuid=user_note.uuid,
-            name=user_note.name,
-            ocr_text=user_note.ocr_text,
-            mime=user_note.mime,
-            location=user_note.location))
+    db.execute('insert into notes (uuid, name, ocr_text, mime, location) values (?, ?, ?, ?, ?)',
+               (user_note.uuid, user_note.name, user_note.ocr_text, user_note.mime, user_note.location))
     add_tags(db, *user_note.tags)
 
 
@@ -92,59 +89,76 @@ def update_tags(db, nt, new_tags):
             new_tag = note.Tag(None, nt.uuid, tag)
             add_tags(db, new_tag)
         elif tag in old_tags:
-            db['tags'].delete(tag=tag, uuid=nt.uuid)
+            db.execute('delete from tags where uuid = ?, tag = ?', (nt.uuid, tag))
 
 
-def update_note(db, data):
+def update_note(db, uuid, data):
     """Update data of note within database."""
-    old_note = note_for_uuid(db, data['uuid'])
+    old_note = note_for_uuid(db, uuid)
     if 'tags' in data:
         update_tags(db, old_note, data['tags'])
         data.pop('tags')
     if 'notebook' in data and old_note.notebook and data['notebook'] != old_note.notebook:
-        notes_left = db['notes'].find(notebook=old_note.notebook.id)
+        query = 'select * from notes where notebook = ?'
+        notes_left = db.execute(query, (old_note.notebook.id,)).fetchall()
         if len(list(notes_left)) == 1:
-            db['notebooks'].delete(id=old_note.notebook.id)
-    db['notes'].update(data, ['uuid'])
+            db.execute('delete from notebooks where id = ?', (old_note.notebook.id,))
+
+    query = '''update notes
+    set
+    name = ?,
+    mime = ?,
+    ocr_text = ?,
+    location = ?,
+    notebook = ?
+    where uuid = ?
+    '''
+    db.execute(query, (data.get('name', old_note.name),
+                       data.get('mime', old_note.mime),
+                       data.get('ocr_text', old_note.ocr_text),
+                       data.get('location', old_note.location),
+                       data.get('notebook', old_note.notebook),
+                       uuid))
 
 
 def remove_note_from_notebook(db, uuid):
     """Remove note from database."""
-    data = {'uuid': uuid, 'notebook': None}
-    db['notes'].update(data, ['uuid'])
+    update_note(db, uuid, {'notebook': None})
 
 
 def delete_notebook(db, notebook):
     """Delete notebook from database, cascading changes onto all notes."""
-    db.query('PRAGMA foreign_keys=ON')
-    db['notebooks'].delete(name=notebook)
+    query = 'delete from notebooks where name=?'
+    db.execute(query, (notebook,))
 
 
 def add_notebook(db, notebook):
     """Insert new notebook into database."""
-    db['notebooks'].insert(dict(name=notebook))
+    query = 'insert into notebooks (name) values (?)'
+    db.execute(query, (notebook,))
 
 
 def notebook_for_id(db, id):
     """Return notebook for notebook id."""
-    res = db['notebooks'].find_one(id=id)
+    query = 'select * from notebooks where id = ?'
+    res = db.execute(query, (id,)).fetchone()
     return note.Notebook(**res)
 
 
 def delete_note(db, uuid):
     """Delete note from database, and associated tags."""
-    db.query('PRAGMA foreign_keys=ON')
-    db['notes'].delete(uuid=uuid)
+    db.execute('delete from notes where uuid = ?', (uuid,))
 
 
 def get_notebooks(db):
     """Get all notesbooks in the database."""
-    return [note.Notebook(**nb) for nb in db['notebooks'].all()]
+    notes = db.execute('select * from notebooks').fetchall()
+    return [note.Notebook(**nb) for nb in notes]
 
 
 def delete_tag(db, tag_id):
     """Delete tag from the database."""
-    db['tags'].delete(id=tag_id)
+    db.execute('delete from tags where id = ?', (tag_id,))
 
 
 def create_db_if_not_exists(schema_file, db_file):

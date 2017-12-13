@@ -4,7 +4,7 @@ Responsible for handling client interactions and maintaining core databases.
 """
 import os
 import io
-import dataset
+import sqlite3
 import requests
 import json
 import multiprocessing
@@ -12,7 +12,7 @@ import uuid
 import mimetypes
 from PIL import Image
 
-from flask import Flask, render_template, request, send_from_directory, jsonify
+from flask import Flask, render_template, request, send_from_directory, jsonify, g
 from werkzeug.utils import secure_filename
 
 from clearfile import db, note, thumbnail, ocr
@@ -29,7 +29,6 @@ def setup_environments():
     os.makedirs(thumb_dir, exist_ok=True)
     app.config['CLEARFILE_DIR'] = clearfile_dir
     app.config['DB_FILE'] = db_file
-    app.config['DB_URL'] = f'sqlite:///{db_file}'
 
 
 setup_environments()
@@ -78,38 +77,32 @@ def search():
     """
     if 'query' not in request.args:
         raise APIError('Client must supply query in order to search.')
-    conn = dataset.connect(app.config['DB_URL'])
-    with conn:
-        search = request.args.get('query', default='')
-        notes = db.note_search(
-            conn, search, notebook=request.args.get('notebook', None),
-            at=request.args.get('at', None))
-        notebooks = db.get_notebooks(conn)
-        # See search_result.html for details on how notes are converted to HTML note cards.
-        return render_template(
-            'search_result.html', notes=notes, notebooks=notebooks)
+    search = request.args.get('query', default='')
+    notes = db.note_search(
+        g.db, search, notebook=request.args.get('notebook', None),
+        at=request.args.get('at', None))
+    notebooks = db.get_notebooks(g.db)
+    # See search_result.html for details on how notes are converted to HTML note cards.
+    return render_template(
+        'search_result.html', notes=notes, notebooks=notebooks)
 
 
 @app.route('/note/<uuid>', methods=['GET'])
 def get_note(uuid):
     """Get note details (formatted as JSON) by note UUID."""
-    conn = dataset.connect(app.config['DB_URL'])
-    with conn:
-        try:
-            nt = db.note_for_uuid(conn, uuid)
-        except KeyError as e:
-            raise APIError(e.args[0])
-        return json.dumps(nt, cls=note.NoteEncoder)
+    try:
+        nt = db.note_for_uuid(g.db, uuid)
+    except KeyError as e:
+        raise APIError(e.args[0])
+    return json.dumps(nt, cls=note.NoteEncoder)
 
 
 @app.route('/uploads/<uuid>', methods=['GET'])
 def uploads(uuid):
     """Show note image associated with note UUID."""
     uuid = secure_filename(uuid)
-    conn = dataset.connect(app.config['DB_URL'])
 
-    with conn:
-        note = db.note_for_uuid(conn, uuid)
+    note = db.note_for_uuid(g.db, uuid)
 
     mime = note.mime
     extension = mimetypes.guess_extension(mime)
@@ -139,9 +132,10 @@ def update_location(uuid, gps_data):
                 location = component['long_name']
                 break
 
-    conn = dataset.connect(app.config['DB_URL'])
-    with conn:
-        db.update_note(conn, {'uuid': uuid, 'location': location})
+    with sqlite3.connect(app.config['DB_FILE']) as conn:
+        conn.row_factory = sqlite3.Row
+        db.update_note(conn, uuid, {'location': location})
+
     return location
 
 @app.route('/upload', methods=['POST'])
@@ -150,6 +144,7 @@ def handle_upload():
 
     Client must supply note title and image, other information is found via processing the image.
     """
+    g.autoclose = False
     if 'image' not in request.files or 'title' not in request.form:
         raise APIError(
             'Client must supply both an image and a title field for note uploads.'
@@ -185,9 +180,9 @@ def handle_upload():
                                   f'{user_note.uuid}.jpe')
         thumbnail.create_thumbnail(path, user_note.mime, thumb_path)
 
-    conn = dataset.connect(app.config['DB_URL'])
-    with conn:
-        db.add_note(conn, user_note)
+    db.add_note(g.db, user_note)
+    g.db.commit()
+    g.db.close()
 
     if fetch_location:
         p = multiprocessing.Process(target=update_location, args=(user_note.uuid,gps_data))
@@ -204,9 +199,7 @@ def handle_delete_tag(tag_id):
     except ValueError:
         raise APIError('Tag must be an integer.')
 
-    conn = dataset.connect(app.config['DB_URL'])
-    with conn:
-        db.delete_tag(conn, tag_id)
+    db.delete_tag(g.db, tag_id)
 
     return ok()
 
@@ -214,11 +207,9 @@ def handle_delete_tag(tag_id):
 @app.route('/delete/note/<uuid>', methods=['GET'])
 def delete_note(uuid):
     """Delete note from database based on note UUID, also deleting tags attached to that note."""
-    conn = dataset.connect(app.config['DB_URL'])
     try:
-        with conn:
-            note = db.note_for_uuid(conn, uuid)
-            db.delete_note(conn, uuid)
+        note = db.note_for_uuid(g.db, uuid)
+        db.delete_note(g.db, uuid)
         extension = mimetypes.guess_extension(note.mime)
         path = os.path.join(app.config['CLEARFILE_DIR'], uuid + extension)
         os.unlink(path)
@@ -230,12 +221,11 @@ def delete_note(uuid):
 @app.route('/add/notebook', methods=['GET'])
 def add_notebook():
     """Add new notebook to database."""
-    conn = dataset.connect(app.config['DB_URL'])
     notebook = request.args.get('name')
     if notebook is None:
         raise APIError('Client must supply a valid notebook name.')
-    with conn:
-        db.add_notebook(conn, notebook)
+
+    db.add_notebook(g.db, notebook)
     return ok()
 
 
@@ -252,7 +242,24 @@ def update():
         raise APIError('Please supply valid json data.')
     elif 'uuid' not in data:
         raise APIError('Client must supply UUID to server.')
-    conn = dataset.connect(app.config['DB_URL'])
-    with conn:
-        db.update_note(conn, data)
+
+    uuid = data.pop('uuid')
+    db.update_note(g.db, uuid, data)
     return ok()
+
+
+@app.before_request
+def init_db():
+    conn = sqlite3.connect(app.config['DB_FILE'])
+    conn.row_factory = sqlite3.Row
+    conn.execute('PRAGMA foreign_keys=ON')
+    g.db = conn
+    g.autoclose = True
+
+
+@app.after_request
+def close_db(response):
+    if g.autoclose:
+        g.db.commit()
+        g.db.close()
+    return response
