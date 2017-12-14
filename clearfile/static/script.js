@@ -54,33 +54,35 @@ function addResults(query) {
 
     $("#clearfile-search-input").val("");
 
-    $('.search-result-container').on('click', '.delete-note', function (event) {
-        event.preventDefault();
-        $.get($(this).attr("href"), function (text, status) {
-            let response = JSON.parse(text);
-            if (response.status === "ok") {
-                Materialize.toast("Note Deleted.", 1000);
-            } else {
-                Materialize.toast("Error deleting note.", 1000);
-            }
-            addResults($("#clearfile-search-input").val());
-        });
-    });
+     $('.search-result-container').on('click', '.delete-note', function (event) {
+         event.preventDefault();
+         $.ajax({
+             type: 'DELETE',
+             url: $(this).attr("href"),
+             success: function (text, status) {
+                 let response = JSON.parse(text);
+                 if (response.status === "ok") {
+                     Materialize.toast("Note Deleted.", 1000);
+                 } else {
+                     Materialize.toast("Error deleting note.", 1000);
+                 }
+                 addResults($("#clearfile-search-input").val());
+             }
+         });
+     });
 
     $('.search-result-container').on('click', '.update-notebook', function (event) {
         event.preventDefault();
-        let noteUUID = $(this).attr('data-note-uuid');
         var notebook = null;
         if (!$(this).hasClass("delete-notebook")) {
             notebook = $(this).attr('data-notebook');
         }
         var data = {
-            uuid: noteUUID,
             notebook: notebook
         };
         $.ajax({
-            type: 'POST',
-            url: SCRIPT_ROOT + '/update/note',
+            type: 'PATCH',
+            url: $(this).attr("href"),
             data: JSON.stringify(data),
             success: function (text, status) {
                 addResults($("#clearfile-search-input").val());
@@ -92,7 +94,7 @@ function addResults(query) {
 
     $('.search-result-container').on('click', '.update-note', function (event) {
         let uuid = $(this).attr('data-note-uuid');
-        $.get(SCRIPT_ROOT + '/note/' + uuid, function (text, status) {
+        $.get(SCRIPT_ROOT + '/api/note/' + uuid, function (text, status) {
             let json = JSON.parse(text);
             let tags = json['tags'];
             let title = json['name'];
@@ -116,14 +118,14 @@ function addResults(query) {
         var tags = $('#edit-chip').material_chip('data').map(c => c.tag);
         var title_form = $('#update-form input[name=title]');
         var title = title_form.val();
+        let uuid = title_form.attr('data-note-uuid');
         var data = {
-            uuid: title_form.attr('data-note-uuid'),
             tags: tags,
             name: title
         };
         $.ajax({
-                type: 'POST',
-                url: SCRIPT_ROOT + '/update/note',
+                type: 'PATCH',
+                url: SCRIPT_ROOT + '/api/note/' + uuid,
                 data: JSON.stringify(data),
                 success: function (text, status) {
                     addResults($("#clearfile-search-input").val());
@@ -140,9 +142,16 @@ function addResults(query) {
 
     $("#notebook-form").submit(function (event) {
         event.preventDefault();
-        $.get(SCRIPT_ROOT + "/add/notebook?" + $('#notebook-form').serialize(), function (data, status) {
-            addResults($("#clearfile-search-input").val());
-            $('#add-notebook').modal('close');
+        $.ajax({
+            url: SCRIPT_ROOT + "/api/notebook",
+            data: new FormData($('#notebook-form')[0]),
+            type: 'POST',
+            contentType: false,
+            processData: false,
+            success: function (data, status) {
+                addResults($("#clearfile-search-input").val());
+                $('#add-notebook').modal('close');
+            }
         });
     });
 
@@ -154,7 +163,7 @@ function addResults(query) {
         event.preventDefault();
         $.ajax({
             // Your server script to process the upload
-            url: SCRIPT_ROOT + '/upload',
+            url: SCRIPT_ROOT + '/api/note',
             type: 'POST',
             // Form data
             data: new FormData($('#upload-form')[0]),
@@ -174,10 +183,15 @@ function addResults(query) {
 
     $('.search-result-container').on('click', '.kill-tag', function(e){
         let dataId = $(this).attr("data-tag-id");
-        $.get(SCRIPT_ROOT + "/delete/tag/" + dataId, function (data) {
-            Materialize.toast("Tag Deleted.", 1000);
-        }).fail(function() {
-            Materialize.toast("Error deleting tag.", 1000);
+        $.ajax({
+            url: SCRIPT_ROOT + "/api/tag/" + dataId,
+            type: 'DELETE',
+            success: function (data, status) {
+                Materialize.toast("Tag Deleted.", 1000);
+            },
+            error: function(request, status, errorThrown) {
+                Materialize.toast("Error deleting tag.", 1000);
+            }
         });
     });
 
